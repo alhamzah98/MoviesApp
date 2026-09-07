@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Enforce authenticated caller
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Enforce caller owns the resource
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // User profile document: users/{uid}
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && (request.resource.data.uid == uid || !('uid' in request.resource.data));
+      allow delete: if isOwner(uid);
+
+      // User watchlist subcollection: users/{uid}/watchlist/{movieId}
+      match /watchlist/{movieId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.movieId is int
+          && string(request.resource.data.movieId) == movieId;
+        allow delete: if isOwner(uid);
+      }
+
+      // User viewing history subcollection: users/{uid}/history/{movieId}
+      match /history/{movieId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.movieId is int
+          && string(request.resource.data.movieId) == movieId;
+        allow delete: if isOwner(uid);
+      }
+    }
+
+    // Disallow public access and broad wildcards across all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

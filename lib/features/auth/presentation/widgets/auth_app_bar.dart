@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 
 class AuthAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const AuthAppBar({
-    required this.title,
-    required this.onBack,
-    super.key,
-  });
+  const AuthAppBar({required this.title, required this.onBack, super.key});
 
   final String title;
   final VoidCallback onBack;
@@ -27,10 +23,7 @@ class AuthAppBar extends StatelessWidget implements PreferredSizeWidget {
               alignment: Alignment.centerLeft,
               child: IconButton(
                 onPressed: onBack,
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: AppColors.primary,
-                ),
+                icon: const Icon(Icons.arrow_back, color: AppColors.primary),
               ),
             ),
             Text(

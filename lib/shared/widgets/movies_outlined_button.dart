@@ -24,12 +24,11 @@ class MoviesOutlinedButton extends StatelessWidget {
           backgroundColor: AppColors.background,
           side: const BorderSide(color: AppColors.border, width: 2),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(MoviesPrimaryButton.borderRadius),
+            borderRadius: BorderRadius.circular(
+              MoviesPrimaryButton.borderRadius,
+            ),
           ),
-          textStyle: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
         child: Text(label),
       ),

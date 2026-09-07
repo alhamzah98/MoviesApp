@@ -1,12 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:movies_app/features/movies/domain/entities/movie.dart';
 
-enum MovieDetailsStatus {
-  initial,
-  loading,
-  success,
-  failure,
-}
+enum MovieDetailsStatus { initial, loading, success, failure }
 
 class MovieDetailsState extends Equatable {
   const MovieDetailsState({
@@ -40,8 +35,9 @@ class MovieDetailsState extends Equatable {
       status: status ?? this.status,
       movie: clearMovie ? null : (movie ?? this.movie),
       suggestions: suggestions ?? this.suggestions,
-      errorMessage:
-          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
       suggestionsErrorMessage: clearSuggestionsErrorMessage
           ? null
           : (suggestionsErrorMessage ?? this.suggestionsErrorMessage),
@@ -51,11 +47,11 @@ class MovieDetailsState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        movie,
-        suggestions,
-        errorMessage,
-        suggestionsErrorMessage,
-        isLoadingSuggestions,
-      ];
+    status,
+    movie,
+    suggestions,
+    errorMessage,
+    suggestionsErrorMessage,
+    isLoadingSuggestions,
+  ];
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
 import 'package:movies_app/core/storage/app_preferences.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
@@ -7,10 +8,12 @@ import 'package:movies_app/core/theme/app_colors.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({
     required this.preferences,
+    this.coordinator,
     super.key,
   });
 
   final AppPreferences preferences;
+  final AuthCoordinator? coordinator;
 
   static const Key screenKey = Key('splash_screen');
 
@@ -36,17 +39,25 @@ class _SplashScreenState extends State<SplashScreen> {
     _didStartResolution = true;
 
     final minimumDelayFuture = Future<void>.delayed(_minimumDisplayDuration);
+    final bootstrapFuture =
+        widget.coordinator?.bootstrap() ?? Future<void>.value();
     final onboardingCompleted = await _readOnboardingCompletedSafely();
 
     await minimumDelayFuture;
+    await bootstrapFuture;
 
     if (!mounted) {
       return;
     }
 
-    final destination = onboardingCompleted
-        ? RouteConstants.login
-        : RouteConstants.onboarding;
+    if (!onboardingCompleted) {
+      context.go(RouteConstants.onboarding);
+      return;
+    }
+
+    final isAuthenticated = widget.coordinator?.isAuthenticated ?? false;
+    final destination =
+        isAuthenticated ? RouteConstants.home : RouteConstants.login;
     context.go(destination);
   }
 
@@ -70,7 +81,10 @@ class _SplashScreenState extends State<SplashScreen> {
           builder: (context, constraints) {
             final logoWidth = (constraints.maxWidth * 0.28).clamp(96.0, 121.0);
             final logoHeight = logoWidth * (118 / 121);
-            final routeWidth = (constraints.maxWidth * 0.42).clamp(140.0, 180.0);
+            final routeWidth = (constraints.maxWidth * 0.42).clamp(
+              140.0,
+              180.0,
+            );
 
             return Stack(
               children: [

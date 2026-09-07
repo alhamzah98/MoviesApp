@@ -53,10 +53,7 @@ void main() {
     });
 
     test('uses safe defaults for missing optional fields', () {
-      final model = MovieModel.fromJson({
-        'id': 11,
-        'title': 'Arrival',
-      });
+      final model = MovieModel.fromJson({'id': 11, 'title': 'Arrival'});
 
       final entity = model.toEntity();
 
@@ -89,14 +86,9 @@ void main() {
         'title': 'Dune',
         'genres': ['Action', null, 42, 'Drama', ''],
         'cast': [
-          {
-            'name': 'Timothee Chalamet',
-            'character_name': 'Paul',
-          },
+          {'name': 'Timothee Chalamet', 'character_name': 'Paul'},
           'invalid-cast',
-          {
-            'character_name': 'Missing name',
-          },
+          {'character_name': 'Missing name'},
           null,
         ],
       });
@@ -110,7 +102,7 @@ void main() {
   group('MoviePageModel.fromJson', () {
     test('parses pagination fields and movie list', () {
       final page = MoviePageModel.fromJson({
-        'movie_count': 40,
+        'movie_count': 50,
         'limit': 20,
         'page_number': 2,
         'movies': [
@@ -119,7 +111,7 @@ void main() {
         ],
       }).toEntity();
 
-      expect(page.movieCount, 40);
+      expect(page.movieCount, 50);
       expect(page.limit, 20);
       expect(page.pageNumber, 2);
       expect(page.movies, hasLength(2));

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -7,14 +9,19 @@ import 'package:movies_app/features/auth/data/data_sources/auth_remote_data_sour
 import 'package:movies_app/features/auth/data/models/app_user_model.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
 
+class _PendingRegistration {
+  final Completer<AppUser?> completer = Completer<AppUser?>();
+  String? createdUid;
+}
+
 class AuthFirebaseDataSource implements AuthRemoteDataSource {
   AuthFirebaseDataSource({
     required FirebaseAuth firebaseAuth,
     required FirebaseFirestore firebaseFirestore,
     required GoogleSignIn googleSignIn,
-  })  : _firebaseAuth = firebaseAuth,
-        _firebaseFirestore = firebaseFirestore,
-        _googleSignIn = googleSignIn;
+  }) : _firebaseAuth = firebaseAuth,
+       _firebaseFirestore = firebaseFirestore,
+       _googleSignIn = googleSignIn;
 
   static const String _usersCollection = 'users';
 
@@ -23,6 +30,7 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
   final GoogleSignIn _googleSignIn;
 
   Future<void>? _googleInitializationFuture;
+  final List<_PendingRegistration> _activeRegistrations = <_PendingRegistration>[];
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firebaseFirestore.collection(_usersCollection);
@@ -33,6 +41,22 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
       if (user == null) {
         return null;
       }
+      // If registration coordination is in progress, await its atomic completion
+      // without polling loops. If registration fails/rolls back, do not create or return a profile.
+      final active = _activeRegistrations.cast<_PendingRegistration?>().firstWhere(
+        (reg) => reg != null && (reg.createdUid == user.uid || reg.createdUid == null),
+        orElse: () => null,
+      );
+
+      if (active != null) {
+        active.createdUid ??= user.uid;
+        final result = await active.completer.future;
+        if (result == null || _firebaseAuth.currentUser?.uid != user.uid) {
+          return null;
+        }
+        return result;
+      }
+
       return _loadOrCreateProfileForAuthUser(user, updateLastLogin: false);
     });
   }
@@ -85,6 +109,8 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
     required String phoneNumber,
     required String avatarId,
   }) async {
+    final registration = _PendingRegistration();
+    _activeRegistrations.add(registration);
     User? createdUser;
     try {
       final credential = await _firebaseAuth.createUserWithEmailAndPassword(
@@ -98,6 +124,7 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
           code: 'unknown',
         );
       }
+      registration.createdUid = createdUser.uid;
 
       await createdUser.updateDisplayName(name);
 
@@ -111,7 +138,9 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
       );
 
       try {
-        await _users.doc(createdUser.uid).set(
+        await _users
+            .doc(createdUser.uid)
+            .set(
               model.toFirestoreMap(
                 createdAtValue: FieldValue.serverTimestamp(),
                 updatedAtValue: FieldValue.serverTimestamp(),
@@ -128,17 +157,36 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
         );
       }
 
-      return await _readUserProfile(createdUser.uid) ?? model.toEntity();
+      final savedUser =
+          await _readUserProfile(createdUser.uid) ?? model.toEntity();
+      if (!registration.completer.isCompleted) {
+        registration.completer.complete(savedUser);
+      }
+      return savedUser;
     } on AppException {
+      if (!registration.completer.isCompleted) {
+        registration.completer.complete(null);
+      }
       rethrow;
     } on FirebaseAuthException catch (error) {
+      if (!registration.completer.isCompleted) {
+        registration.completer.complete(null);
+      }
       throw AuthErrorMapper.fromCode(error.code, originalError: error);
     } catch (error) {
+      if (!registration.completer.isCompleted) {
+        registration.completer.complete(null);
+      }
       throw AuthErrorMapper.fromCode(
         null,
         originalError: error,
         fallbackMessage: 'Unable to create your account. Please try again.',
       );
+    } finally {
+      if (!registration.completer.isCompleted) {
+        registration.completer.complete(null);
+      }
+      _activeRegistrations.remove(registration);
     }
   }
 
@@ -157,8 +205,9 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
       }
 
       final credential = GoogleAuthProvider.credential(idToken: idToken);
-      final userCredential =
-          await _firebaseAuth.signInWithCredential(credential);
+      final userCredential = await _firebaseAuth.signInWithCredential(
+        credential,
+      );
       final user = userCredential.user;
       if (user == null) {
         throw const AppException(
@@ -247,18 +296,15 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
 
     try {
       await user.updateDisplayName(name);
-      await _users.doc(user.uid).set(
-        {
-          'uid': user.uid,
-          'name': name,
-          'phoneNumber': phoneNumber,
-          'avatarId': avatarId,
-          'email': user.email ?? '',
-          'isEmailVerified': user.emailVerified,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await _users.doc(user.uid).set({
+        'uid': user.uid,
+        'name': name,
+        'phoneNumber': phoneNumber,
+        'avatarId': avatarId,
+        'email': user.email ?? '',
+        'isEmailVerified': user.emailVerified,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       final profile = await _readUserProfile(user.uid);
       if (profile == null) {
@@ -295,7 +341,8 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
     } catch (error) {
       throw _mapFirestoreError(
         error,
-        fallbackMessage: 'Unable to delete your account data. Please try again.',
+        fallbackMessage:
+            'Unable to delete your account data. Please try again.',
       );
     }
 
@@ -330,14 +377,11 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
     final existing = await _readUserProfile(user.uid);
     if (existing != null) {
       if (updateLastLogin) {
-        await _users.doc(user.uid).set(
-          {
-            'lastLoginAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-            'isEmailVerified': user.emailVerified,
-          },
-          SetOptions(merge: true),
-        );
+        await _users.doc(user.uid).set({
+          'lastLoginAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'isEmailVerified': user.emailVerified,
+        }, SetOptions(merge: true));
         return await _readUserProfile(user.uid) ?? existing;
       }
       return existing;
@@ -345,7 +389,9 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
 
     final model = AppUserModel.fromFirebaseUser(user);
 
-    await _users.doc(user.uid).set(
+    await _users
+        .doc(user.uid)
+        .set(
           model.toFirestoreMap(
             createdAtValue: FieldValue.serverTimestamp(),
             updatedAtValue: FieldValue.serverTimestamp(),
@@ -378,11 +424,13 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
       'lastLoginAt': FieldValue.serverTimestamp(),
     };
 
-    final name = existingName ??
+    final name =
+        existingName ??
         _nonEmptyString(user.displayName) ??
         _nonEmptyString(account.displayName);
     final phoneNumber = existingPhone ?? _nonEmptyString(user.phoneNumber);
-    final photoUrl = existingPhoto ??
+    final photoUrl =
+        existingPhoto ??
         _nonEmptyString(user.photoURL) ??
         _nonEmptyString(account.photoUrl);
 

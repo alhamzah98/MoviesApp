@@ -24,6 +24,7 @@ class Movie extends Equatable {
     this.mediumCoverImage,
     this.largeCoverImage,
     this.cast = const [],
+    this.screenshotUrls = const [],
   });
 
   final int id;
@@ -47,6 +48,7 @@ class Movie extends Equatable {
   final String? mediumCoverImage;
   final String? largeCoverImage;
   final List<CastMember> cast;
+  final List<String> screenshotUrls;
 
   String get bestCoverImage {
     return largeCoverImage ??
@@ -59,26 +61,27 @@ class Movie extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        titleEnglish,
-        titleLong,
-        year,
-        rating,
-        runtime,
-        genres,
-        summary,
-        descriptionFull,
-        youtubeTrailerCode,
-        language,
-        mpaRating,
-        likeCount,
-        downloadCount,
-        backgroundImage,
-        backgroundImageOriginal,
-        smallCoverImage,
-        mediumCoverImage,
-        largeCoverImage,
-        cast,
-      ];
+    id,
+    title,
+    titleEnglish,
+    titleLong,
+    year,
+    rating,
+    runtime,
+    genres,
+    summary,
+    descriptionFull,
+    youtubeTrailerCode,
+    language,
+    mpaRating,
+    likeCount,
+    downloadCount,
+    backgroundImage,
+    backgroundImageOriginal,
+    smallCoverImage,
+    mediumCoverImage,
+    largeCoverImage,
+    cast,
+    screenshotUrls,
+  ];
 }

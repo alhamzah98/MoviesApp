@@ -1,12 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:movies_app/features/library/domain/entities/library_movie.dart';
 
-enum WatchlistStatus {
-  initial,
-  loading,
-  ready,
-  failure,
-}
+enum WatchlistStatus { initial, loading, ready, failure }
 
 class WatchlistState extends Equatable {
   const WatchlistState({
@@ -38,8 +33,9 @@ class WatchlistState extends Equatable {
       status: status ?? this.status,
       movies: movies ?? this.movies,
       pendingMovieIds: pendingMovieIds ?? this.pendingMovieIds,
-      errorMessage:
-          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
     );
   }
 

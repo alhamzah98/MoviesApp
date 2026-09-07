@@ -65,11 +65,7 @@ class HomeSectionHeader extends StatelessWidget {
 /// Falls back to an italic system font because the Figma script face is not
 /// bundled in the project.
 class HomeScriptHeading extends StatelessWidget {
-  const HomeScriptHeading(
-    this.text, {
-    this.fontSize = 48,
-    super.key,
-  });
+  const HomeScriptHeading(this.text, {this.fontSize = 48, super.key});
 
   final String text;
   final double fontSize;

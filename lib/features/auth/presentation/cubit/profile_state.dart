@@ -1,14 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
 
-enum ProfileStatus {
-  initial,
-  loading,
-  ready,
-  submitting,
-  deleted,
-  failure,
-}
+enum ProfileStatus { initial, loading, ready, submitting, deleted, failure }
 
 class ProfileState extends Equatable {
   const ProfileState({
@@ -33,8 +26,9 @@ class ProfileState extends Equatable {
     return ProfileState(
       status: status ?? this.status,
       user: clearUser ? null : (user ?? this.user),
-      errorMessage:
-          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
     );
   }
 

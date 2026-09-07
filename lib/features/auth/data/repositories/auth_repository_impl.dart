@@ -22,10 +22,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) {
     return _guard(
-      () => _remoteDataSource.signInWithEmail(
-        email: email,
-        password: password,
-      ),
+      () => _remoteDataSource.signInWithEmail(email: email, password: password),
     );
   }
 

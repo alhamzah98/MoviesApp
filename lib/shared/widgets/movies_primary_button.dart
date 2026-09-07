@@ -3,13 +3,16 @@ import 'package:movies_app/core/theme/app_colors.dart';
 
 class MoviesPrimaryButton extends StatelessWidget {
   const MoviesPrimaryButton({
-    required this.label,
+    String? label,
+    String? text,
     required this.onPressed,
+    this.isLoading = false,
     super.key,
-  });
+  }) : label = label ?? text ?? '';
 
   final String label;
   final VoidCallback? onPressed;
+  final bool isLoading;
 
   static const double height = 55;
   static const double borderRadius = 15;
@@ -20,7 +23,7 @@ class MoviesPrimaryButton extends StatelessWidget {
       width: double.infinity,
       height: height,
       child: FilledButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.onPrimary,
@@ -28,12 +31,18 @@ class MoviesPrimaryButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
           ),
-          textStyle: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
-        child: Text(label),
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.onPrimary,
+                ),
+              )
+            : Text(label),
       ),
     );
   }

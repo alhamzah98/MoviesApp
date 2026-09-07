@@ -1,12 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:movies_app/features/library/domain/entities/library_movie.dart';
 
-enum HistoryStatus {
-  initial,
-  loading,
-  ready,
-  failure,
-}
+enum HistoryStatus { initial, loading, ready, failure }
 
 class HistoryState extends Equatable {
   const HistoryState({
@@ -34,8 +29,9 @@ class HistoryState extends Equatable {
       status: status ?? this.status,
       movies: movies ?? this.movies,
       pendingMovieIds: pendingMovieIds ?? this.pendingMovieIds,
-      errorMessage:
-          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
     );
   }
 

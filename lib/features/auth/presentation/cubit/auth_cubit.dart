@@ -17,12 +17,12 @@ class AuthCubit extends Cubit<AuthState> {
     required RegisterWithEmail registerWithEmail,
     required SignInWithGoogle signInWithGoogle,
     required SignOut signOut,
-  })  : _observeAuthState = observeAuthState,
-        _signInWithEmail = signInWithEmail,
-        _registerWithEmail = registerWithEmail,
-        _signInWithGoogle = signInWithGoogle,
-        _signOut = signOut,
-        super(const AuthState());
+  }) : _observeAuthState = observeAuthState,
+       _signInWithEmail = signInWithEmail,
+       _registerWithEmail = registerWithEmail,
+       _signInWithGoogle = signInWithGoogle,
+       _signOut = signOut,
+       super(const AuthState());
 
   final ObserveAuthState _observeAuthState;
   final SignInWithEmail _signInWithEmail;
@@ -31,6 +31,21 @@ class AuthCubit extends Cubit<AuthState> {
   final SignOut _signOut;
 
   StreamSubscription<AppUser?>? _authSubscription;
+  bool _isRegistering = false;
+  int _sessionGeneration = 0;
+
+  void updateUser(AppUser user) {
+    if (isClosed) {
+      return;
+    }
+    emit(
+      state.copyWith(
+        status: AuthStatus.authenticated,
+        user: user,
+        clearErrorMessage: true,
+      ),
+    );
+  }
 
   void startListening() {
     if (_authSubscription != null) {
@@ -41,6 +56,12 @@ class AuthCubit extends Cubit<AuthState> {
 
     _authSubscription = _observeAuthState().listen(
       (user) {
+        if (isClosed || _isRegistering) {
+          // Suppress intermediate auth events during registration so intermediate
+          // stream events cannot navigate Home before Firestore profile creation finishes.
+          return;
+        }
+
         if (user == null) {
           emit(
             state.copyWith(
@@ -61,6 +82,9 @@ class AuthCubit extends Cubit<AuthState> {
         );
       },
       onError: (Object error) {
+        if (isClosed || _isRegistering) {
+          return;
+        }
         emit(
           state.copyWith(
             status: AuthStatus.failure,
@@ -80,18 +104,16 @@ class AuthCubit extends Cubit<AuthState> {
       return;
     }
 
+    final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(
-        status: AuthStatus.submitting,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: AuthStatus.submitting, clearErrorMessage: true),
     );
 
     try {
-      final user = await _signInWithEmail(
-        email: email,
-        password: password,
-      );
+      final user = await _signInWithEmail(email: email, password: password);
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: AuthStatus.authenticated,
@@ -100,6 +122,9 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
     } catch (error) {
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: AuthStatus.failure,
@@ -121,11 +146,10 @@ class AuthCubit extends Cubit<AuthState> {
       return;
     }
 
+    final generation = ++_sessionGeneration;
+    _isRegistering = true;
     emit(
-      state.copyWith(
-        status: AuthStatus.submitting,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: AuthStatus.submitting, clearErrorMessage: true),
     );
 
     try {
@@ -137,6 +161,10 @@ class AuthCubit extends Cubit<AuthState> {
         phoneNumber: phoneNumber,
         avatarId: avatarId,
       );
+      _isRegistering = false;
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: AuthStatus.authenticated,
@@ -145,6 +173,10 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
     } catch (error) {
+      _isRegistering = false;
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: AuthStatus.failure,
@@ -159,15 +191,16 @@ class AuthCubit extends Cubit<AuthState> {
       return;
     }
 
+    final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(
-        status: AuthStatus.submitting,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: AuthStatus.submitting, clearErrorMessage: true),
     );
 
     try {
       final user = await _signInWithGoogle();
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       if (user == null) {
         // Cancellation is not treated as an authentication failure.
         emit(
@@ -189,6 +222,9 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
     } catch (error) {
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: AuthStatus.failure,
@@ -203,15 +239,16 @@ class AuthCubit extends Cubit<AuthState> {
       return;
     }
 
+    final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(
-        status: AuthStatus.submitting,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: AuthStatus.submitting, clearErrorMessage: true),
     );
 
     try {
       await _signOut();
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: AuthStatus.unauthenticated,
@@ -220,6 +257,9 @@ class AuthCubit extends Cubit<AuthState> {
         ),
       );
     } catch (error) {
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: AuthStatus.failure,

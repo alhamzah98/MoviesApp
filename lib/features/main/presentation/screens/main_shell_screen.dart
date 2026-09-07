@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:movies_app/core/auth/auth_coordinator.dart';
+import 'package:movies_app/core/constants/route_constants.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/browse/presentation/screens/browse_screen.dart';
 import 'package:movies_app/features/home/presentation/cubit/home_cubit.dart';
@@ -12,10 +15,12 @@ import 'package:movies_app/features/search/presentation/screens/search_screen.da
 class MainShellScreen extends StatefulWidget {
   const MainShellScreen({
     required this.getMovies,
+    this.coordinator,
     super.key,
   });
 
   final GetMovies getMovies;
+  final AuthCoordinator? coordinator;
 
   @override
   State<MainShellScreen> createState() => _MainShellScreenState();
@@ -58,13 +63,25 @@ class _MainShellScreenState extends State<MainShellScreen> {
               children: [
                 BlocProvider.value(
                   value: _homeCubit,
-                  child: HomeScreen(
-                    onSeeMore: () => _selectTab(2),
-                  ),
+                  child: HomeScreen(onSeeMore: () => _selectTab(2)),
                 ),
-                const SearchScreen(),
-                const BrowseScreen(),
-                const ProfileScreen(),
+                SearchScreen(getMovies: widget.getMovies),
+                BrowseScreen(getMovies: widget.getMovies),
+                ListenableBuilder(
+                  listenable: widget.coordinator ?? ValueNotifier<void>(null),
+                  builder: (context, _) {
+                    return ProfileScreen(
+                      user: widget.coordinator?.currentUser,
+                      watchlistCubit: widget.coordinator?.watchlistCubit,
+                      historyCubit: widget.coordinator?.historyCubit,
+                      onEditProfile: () =>
+                          context.push(RouteConstants.updateProfile),
+                      onLogout: () async {
+                        await widget.coordinator?.authCubit?.signOut();
+                      },
+                    );
+                  },
+                ),
               ],
             ),
           ),

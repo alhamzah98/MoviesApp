@@ -19,12 +19,16 @@ class MoviesCubit extends Cubit<MoviesState> {
   }
 
   Future<void> refresh() {
-    final nextQuery = state.query.copyWith(page: ApiConstants.defaultPage).validated();
+    final nextQuery = state.query
+        .copyWith(page: ApiConstants.defaultPage)
+        .validated();
     return _load(query: nextQuery, append: false);
   }
 
   Future<void> applyQuery(MoviesQuery query) {
-    final nextQuery = query.copyWith(page: ApiConstants.defaultPage).validated();
+    final nextQuery = query
+        .copyWith(page: ApiConstants.defaultPage)
+        .validated();
     return _load(query: nextQuery, append: false);
   }
 
@@ -41,10 +45,7 @@ class MoviesCubit extends Cubit<MoviesState> {
         .validated();
 
     emit(
-      state.copyWith(
-        isLoadingMore: true,
-        clearPaginationErrorMessage: true,
-      ),
+      state.copyWith(isLoadingMore: true, clearPaginationErrorMessage: true),
     );
 
     try {
@@ -81,10 +82,7 @@ class MoviesCubit extends Cubit<MoviesState> {
     }
   }
 
-  Future<void> _load({
-    required MoviesQuery query,
-    required bool append,
-  }) async {
+  Future<void> _load({required MoviesQuery query, required bool append}) async {
     emit(
       state.copyWith(
         status: MoviesStatus.loading,
@@ -135,10 +133,7 @@ class MoviesCubit extends Cubit<MoviesState> {
     }
   }
 
-  List<Movie> _mergeUniqueMovies(
-    List<Movie> existing,
-    List<Movie> incoming,
-  ) {
+  List<Movie> _mergeUniqueMovies(List<Movie> existing, List<Movie> incoming) {
     if (incoming.isEmpty) {
       return existing;
     }

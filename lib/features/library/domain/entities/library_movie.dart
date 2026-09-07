@@ -60,17 +60,17 @@ class LibraryMovie extends Equatable {
 
   @override
   List<Object?> get props => [
-        movieId,
-        title,
-        year,
-        rating,
-        genres,
-        summary,
-        mediumCoverImage,
-        largeCoverImage,
-        backgroundImage,
-        addedAt,
-        lastViewedAt,
-        viewCount,
-      ];
+    movieId,
+    title,
+    year,
+    rating,
+    genres,
+    summary,
+    mediumCoverImage,
+    largeCoverImage,
+    backgroundImage,
+    addedAt,
+    lastViewedAt,
+    viewCount,
+  ];
 }

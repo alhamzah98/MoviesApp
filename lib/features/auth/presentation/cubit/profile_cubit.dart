@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
+import 'package:movies_app/features/auth/domain/entities/app_user.dart';
 import 'package:movies_app/features/auth/domain/use_cases/delete_account.dart';
 import 'package:movies_app/features/auth/domain/use_cases/get_current_user.dart';
 import 'package:movies_app/features/auth/domain/use_cases/update_profile.dart';
@@ -10,25 +11,41 @@ class ProfileCubit extends Cubit<ProfileState> {
     required GetCurrentUser getCurrentUser,
     required UpdateProfile updateProfile,
     required DeleteAccount deleteAccount,
-  })  : _getCurrentUser = getCurrentUser,
-        _updateProfile = updateProfile,
-        _deleteAccount = deleteAccount,
-        super(const ProfileState());
+  }) : _getCurrentUser = getCurrentUser,
+       _updateProfile = updateProfile,
+       _deleteAccount = deleteAccount,
+       super(const ProfileState());
 
   final GetCurrentUser _getCurrentUser;
   final UpdateProfile _updateProfile;
   final DeleteAccount _deleteAccount;
 
-  Future<void> loadCurrentUser() async {
+  int _sessionGeneration = 0;
+  String? _expectedUid;
+
+  void reset() {
+    _sessionGeneration++;
+    _expectedUid = null;
+    emit(const ProfileState());
+  }
+
+  Future<void> loadCurrentUser({String? expectedUid}) async {
+    final generation = ++_sessionGeneration;
+    if (expectedUid != null) {
+      _expectedUid = expectedUid;
+    }
     emit(
-      state.copyWith(
-        status: ProfileStatus.loading,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: ProfileStatus.loading, clearErrorMessage: true),
     );
 
     try {
       final user = await _getCurrentUser();
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
+      if (_expectedUid != null && user != null && user.uid != _expectedUid) {
+        return;
+      }
       if (user == null) {
         emit(
           state.copyWith(
@@ -48,6 +65,9 @@ class ProfileCubit extends Cubit<ProfileState> {
         ),
       );
     } catch (error) {
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: ProfileStatus.failure,
@@ -57,20 +77,22 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
-  Future<void> updateProfile({
+  /// Updates profile data.
+  ///
+  /// Returns the updated [AppUser] on success, or `null` on failure.
+  /// This provides callers with an unambiguous success contract.
+  Future<AppUser?> updateProfile({
     required String name,
     required String phoneNumber,
     required String avatarId,
   }) async {
     if (state.isSubmitting) {
-      return;
+      return null;
     }
 
+    final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(
-        status: ProfileStatus.submitting,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: ProfileStatus.submitting, clearErrorMessage: true),
     );
 
     try {
@@ -79,6 +101,12 @@ class ProfileCubit extends Cubit<ProfileState> {
         phoneNumber: phoneNumber,
         avatarId: avatarId,
       );
+      if (isClosed || generation != _sessionGeneration) {
+        return null;
+      }
+      if (_expectedUid != null && user.uid != _expectedUid) {
+        return null;
+      }
       emit(
         state.copyWith(
           status: ProfileStatus.ready,
@@ -86,13 +114,18 @@ class ProfileCubit extends Cubit<ProfileState> {
           clearErrorMessage: true,
         ),
       );
+      return user;
     } catch (error) {
+      if (isClosed || generation != _sessionGeneration) {
+        return null;
+      }
       emit(
         state.copyWith(
           status: ProfileStatus.failure,
           errorMessage: _messageFrom(error),
         ),
       );
+      return null;
     }
   }
 
@@ -101,15 +134,16 @@ class ProfileCubit extends Cubit<ProfileState> {
       return;
     }
 
+    final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(
-        status: ProfileStatus.submitting,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: ProfileStatus.submitting, clearErrorMessage: true),
     );
 
     try {
       await _deleteAccount();
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: ProfileStatus.deleted,
@@ -118,6 +152,9 @@ class ProfileCubit extends Cubit<ProfileState> {
         ),
       );
     } catch (error) {
+      if (isClosed || generation != _sessionGeneration) {
+        return;
+      }
       emit(
         state.copyWith(
           status: ProfileStatus.failure,

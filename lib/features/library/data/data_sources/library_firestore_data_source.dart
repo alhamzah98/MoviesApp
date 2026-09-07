@@ -10,8 +10,8 @@ class LibraryFirestoreDataSource implements LibraryRemoteDataSource {
   LibraryFirestoreDataSource({
     required FirebaseAuth firebaseAuth,
     required FirebaseFirestore firebaseFirestore,
-  })  : _firebaseAuth = firebaseAuth,
-        _firebaseFirestore = firebaseFirestore;
+  }) : _firebaseAuth = firebaseAuth,
+       _firebaseFirestore = firebaseFirestore;
 
   static const String _usersCollection = 'users';
   static const String _watchlistCollection = 'watchlist';
@@ -94,10 +94,10 @@ class LibraryFirestoreDataSource implements LibraryRemoteDataSource {
         'viewCount': FieldValue.increment(1),
       };
 
-      await _historyDoc(uid, movie.movieId).set(
-        payload,
-        SetOptions(merge: true),
-      );
+      await _historyDoc(
+        uid,
+        movie.movieId,
+      ).set(payload, SetOptions(merge: true));
     });
   }
 
@@ -134,7 +134,10 @@ class LibraryFirestoreDataSource implements LibraryRemoteDataSource {
     }
   }
 
-  DocumentReference<Map<String, dynamic>> _watchlistDoc(String uid, int movieId) {
+  DocumentReference<Map<String, dynamic>> _watchlistDoc(
+    String uid,
+    int movieId,
+  ) {
     return _firebaseFirestore
         .collection(_usersCollection)
         .doc(uid)
@@ -167,10 +170,7 @@ class LibraryFirestoreDataSource implements LibraryRemoteDataSource {
     } on AppException {
       rethrow;
     } on FirebaseException catch (error) {
-      throw LibraryErrorMapper.fromCode(
-        error.code,
-        originalError: error,
-      );
+      throw LibraryErrorMapper.fromCode(error.code, originalError: error);
     } catch (error) {
       throw LibraryErrorMapper.fromError(
         error,

@@ -6,10 +6,7 @@ void main() {
     test('maps known Firebase codes to friendly messages', () {
       final exception = AuthErrorMapper.fromCode('email-already-in-use');
 
-      expect(
-        exception.message,
-        'An account already exists for this email.',
-      );
+      expect(exception.message, 'An account already exists for this email.');
       expect(exception.code, 'email-already-in-use');
     });
 

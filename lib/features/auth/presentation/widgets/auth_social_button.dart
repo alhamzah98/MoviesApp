@@ -25,7 +25,9 @@ class AuthSocialButton extends StatelessWidget {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.inputFill,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(MoviesPrimaryButton.borderRadius),
+            borderRadius: BorderRadius.circular(
+              MoviesPrimaryButton.borderRadius,
+            ),
           ),
         ),
         child: Row(

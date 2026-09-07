@@ -17,11 +17,13 @@ class LibraryErrorMapper {
       'unauthenticated' => 'Please sign in to use your watchlist and history.',
       'not-found' => 'This library item could not be found.',
       'deadline-exceeded' => 'The request timed out. Please try again.',
-      'resource-exhausted' => 'Too many library requests. Please try again later.',
+      'resource-exhausted' =>
+        'Too many library requests. Please try again later.',
       'cancelled' => 'The library request was cancelled.',
       'unknown' =>
         fallbackMessage ?? 'Unable to update your library. Please try again.',
-      _ => fallbackMessage ?? 'Unable to update your library. Please try again.',
+      _ =>
+        fallbackMessage ?? 'Unable to update your library. Please try again.',
     };
 
     return AppException(
@@ -31,10 +33,7 @@ class LibraryErrorMapper {
     );
   }
 
-  static AppException fromError(
-    Object error, {
-    String? fallbackMessage,
-  }) {
+  static AppException fromError(Object error, {String? fallbackMessage}) {
     if (error is AppException) {
       return error;
     }

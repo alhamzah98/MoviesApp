@@ -13,5 +13,8 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(SplashScreen.screenKey), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
   });
 }

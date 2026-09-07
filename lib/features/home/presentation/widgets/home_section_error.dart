@@ -36,9 +36,7 @@ class HomeSectionError extends StatelessWidget {
             ),
             TextButton(
               onPressed: onRetry,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
               child: const Text('Retry'),
             ),
           ],

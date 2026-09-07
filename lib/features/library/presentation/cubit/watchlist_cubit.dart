@@ -13,10 +13,10 @@ class WatchlistCubit extends Cubit<WatchlistState> {
     required ObserveWatchlist observeWatchlist,
     required AddToWatchlist addToWatchlist,
     required RemoveFromWatchlist removeFromWatchlist,
-  })  : _observeWatchlist = observeWatchlist,
-        _addToWatchlist = addToWatchlist,
-        _removeFromWatchlist = removeFromWatchlist,
-        super(const WatchlistState());
+  }) : _observeWatchlist = observeWatchlist,
+       _addToWatchlist = addToWatchlist,
+       _removeFromWatchlist = removeFromWatchlist,
+       super(const WatchlistState());
 
   final ObserveWatchlist _observeWatchlist;
   final AddToWatchlist _addToWatchlist;
@@ -24,16 +24,16 @@ class WatchlistCubit extends Cubit<WatchlistState> {
 
   StreamSubscription<List<LibraryMovie>>? _subscription;
 
-  void startObserving() {
-    if (_subscription != null) {
+  void startObserving({bool force = false}) {
+    if (force) {
+      _subscription?.cancel();
+      _subscription = null;
+    } else if (_subscription != null) {
       return;
     }
 
     emit(
-      state.copyWith(
-        status: WatchlistStatus.loading,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: WatchlistStatus.loading, clearErrorMessage: true),
     );
 
     _subscription = _observeWatchlist().listen(
@@ -50,6 +50,8 @@ class WatchlistCubit extends Cubit<WatchlistState> {
         );
       },
       onError: (Object error) {
+        _subscription?.cancel();
+        _subscription = null;
         if (isClosed) {
           return;
         }
@@ -61,6 +63,18 @@ class WatchlistCubit extends Cubit<WatchlistState> {
         );
       },
     );
+  }
+
+  /// Retries the observation stream, cancelling any stale subscription.
+  void retry() {
+    startObserving(force: true);
+  }
+
+  /// Clears in-memory library data and cancels active subscriptions (e.g. on sign-out/UID change).
+  void reset() {
+    _subscription?.cancel();
+    _subscription = null;
+    emit(const WatchlistState());
   }
 
   Future<void> addMovie(LibraryMovie movie) async {
@@ -80,11 +94,7 @@ class WatchlistCubit extends Cubit<WatchlistState> {
       if (isClosed) {
         return;
       }
-      emit(
-        state.copyWith(
-          pendingMovieIds: _withoutPending(movie.movieId),
-        ),
-      );
+      emit(state.copyWith(pendingMovieIds: _withoutPending(movie.movieId)));
     } catch (error) {
       if (isClosed) {
         return;
@@ -116,11 +126,7 @@ class WatchlistCubit extends Cubit<WatchlistState> {
       if (isClosed) {
         return;
       }
-      emit(
-        state.copyWith(
-          pendingMovieIds: _withoutPending(movieId),
-        ),
-      );
+      emit(state.copyWith(pendingMovieIds: _withoutPending(movieId)));
     } catch (error) {
       if (isClosed) {
         return;

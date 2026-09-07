@@ -26,7 +26,10 @@ class MoviePageModel {
       movies: movies,
       movieCount: JsonParsers.asIntOr(json['movie_count'], movies.length),
       limit: JsonParsers.asIntOr(json['limit'], ApiConstants.defaultLimit),
-      pageNumber: JsonParsers.asIntOr(json['page_number'], ApiConstants.defaultPage),
+      pageNumber: JsonParsers.asIntOr(
+        json['page_number'],
+        ApiConstants.defaultPage,
+      ),
     );
   }
 

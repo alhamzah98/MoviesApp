@@ -4,7 +4,7 @@ typedef SharedPreferencesLoader = Future<SharedPreferences> Function();
 
 class AppPreferences {
   AppPreferences({SharedPreferencesLoader? loader})
-      : _loader = loader ?? SharedPreferences.getInstance;
+    : _loader = loader ?? SharedPreferences.getInstance;
 
   static const String _onboardingCompletedKey = 'onboarding_completed';
 

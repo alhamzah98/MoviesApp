@@ -91,11 +91,7 @@ class _RatingChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          const Icon(
-            Icons.star_rounded,
-            color: AppColors.primary,
-            size: 16,
-          ),
+          const Icon(Icons.star_rounded, color: AppColors.primary, size: 16),
         ],
       ),
     );

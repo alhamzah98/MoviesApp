@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
+import 'package:movies_app/core/errors/app_exception.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
+import 'package:movies_app/features/auth/domain/auth_validators.dart';
+import 'package:movies_app/features/auth/presentation/cubit/auth_state.dart';
 import 'package:movies_app/features/auth/presentation/widgets/auth_app_bar.dart';
 import 'package:movies_app/features/auth/presentation/widgets/auth_language_switch.dart';
 import 'package:movies_app/features/auth/presentation/widgets/auth_password_field.dart';
@@ -11,7 +15,9 @@ import 'package:movies_app/features/auth/presentation/widgets/avatar_selector.da
 import 'package:movies_app/shared/widgets/movies_primary_button.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  const RegisterScreen({this.coordinator, super.key});
+
+  final AuthCoordinator? coordinator;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -24,6 +30,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'assets/images/auth/avatar_02.png',
   ];
 
+  static const _avatarIds = [
+    'avatar_03',
+    'avatar_01',
+    'avatar_02',
+  ];
+
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -31,6 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
 
   int _selectedAvatarIndex = 1;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -42,8 +55,90 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  /// Placeholder until account creation is implemented.
-  void _onCreateAccountPressed() {}
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.inputFill,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _onCreateAccountPressed() async {
+    if (_isSubmitting) {
+      return;
+    }
+
+    final coordinator = widget.coordinator;
+    if (coordinator != null && coordinator.isConfigurationUnavailable) {
+      _showMessage(
+        coordinator.bootstrapErrorMessage ??
+            'Firebase configuration is absent. Please configure google-services.json.',
+      );
+      return;
+    }
+
+    final name = _nameController.text;
+    final email = _emailController.text;
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    final phone = _phoneController.text;
+    final avatarId = _avatarIds[_selectedAvatarIndex.clamp(0, _avatarIds.length - 1)];
+
+    try {
+      AuthValidators.validateName(name);
+      AuthValidators.validateEmail(email);
+      AuthValidators.validateRegistrationPassword(password);
+      AuthValidators.validatePasswordConfirmation(
+        password: password,
+        confirmPassword: confirmPassword,
+      );
+      AuthValidators.validatePhoneNumber(phone);
+      AuthValidators.validateAvatarId(avatarId);
+    } on AppException catch (e) {
+      _showMessage(e.message);
+      return;
+    }
+
+    final authCubit = coordinator?.authCubit;
+    if (authCubit == null) {
+      _showMessage('Authentication service is currently unavailable.');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      await authCubit.registerWithEmail(
+        name: AuthValidators.normalizeName(name),
+        email: AuthValidators.normalizeEmail(email),
+        password: password,
+        confirmPassword: confirmPassword,
+        phoneNumber: AuthValidators.normalizePhone(phone),
+        avatarId: avatarId,
+      );
+
+      if (!mounted) return;
+
+      if (authCubit.state.status == AuthStatus.failure) {
+        _showMessage(
+          authCubit.state.errorMessage ??
+              'Registration failed. Please try again.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Registration failed. Please try again.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +157,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + bottomInset),
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 32,
+                ),
                 child: Column(
                   children: [
                     AvatarSelector(
@@ -72,6 +169,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         setState(() => _selectedAvatarIndex = index);
                       },
                     ),
+                    if (widget.coordinator?.isConfigurationUnavailable ?? false) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline,
+                              color: AppColors.error,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                widget.coordinator?.bootstrapErrorMessage ??
+                                    'Firebase configuration is absent. Please configure google-services.json.',
+                                style: const TextStyle(
+                                  color: AppColors.onBackground,
+                                  fontSize: 12,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     AuthTextField(
                       controller: _nameController,
@@ -111,7 +242,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 24),
                     MoviesPrimaryButton(
                       label: 'Create Account',
-                      onPressed: _onCreateAccountPressed,
+                      isLoading: _isSubmitting,
+                      onPressed: _isSubmitting ? null : _onCreateAccountPressed,
                     ),
                     const SizedBox(height: 18),
                     Text.rich(

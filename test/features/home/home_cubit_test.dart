@@ -84,26 +84,49 @@ void main() {
       await cubit.close();
     });
 
-    test('preserves previous successful movies when a refresh section fails',
-        () async {
-      final repository = _FakeMoviesRepository(
-        availableNowMovies: const [availableMovie],
-        actionMovies: const [actionMovie],
+    test('keeps action section when available now section fails', () async {
+      final cubit = HomeCubit(
+        getMovies: GetMovies(
+          _FakeMoviesRepository(
+            actionMovies: const [actionMovie],
+            failAvailableNow: true,
+          ),
+        ),
       );
-      final cubit = HomeCubit(getMovies: GetMovies(repository));
 
       await cubit.load();
-      expect(cubit.state.status, HomeStatus.success);
-
-      repository.failAction = true;
-      await cubit.refresh();
 
       expect(cubit.state.status, HomeStatus.partialSuccess);
-      expect(cubit.state.availableNowMovies, const [availableMovie]);
+      expect(cubit.state.availableNowMovies, isEmpty);
       expect(cubit.state.actionMovies, const [actionMovie]);
-      expect(cubit.state.actionError, 'Action section failed.');
+      expect(cubit.state.availableNowError, 'Available Now section failed.');
+      expect(cubit.state.actionError, isNull);
 
       await cubit.close();
     });
+
+    test(
+      'preserves previous successful movies when a refresh section fails',
+      () async {
+        final repository = _FakeMoviesRepository(
+          availableNowMovies: const [availableMovie],
+          actionMovies: const [actionMovie],
+        );
+        final cubit = HomeCubit(getMovies: GetMovies(repository));
+
+        await cubit.load();
+        expect(cubit.state.status, HomeStatus.success);
+
+        repository.failAction = true;
+        await cubit.refresh();
+
+        expect(cubit.state.status, HomeStatus.partialSuccess);
+        expect(cubit.state.availableNowMovies, const [availableMovie]);
+        expect(cubit.state.actionMovies, const [actionMovie]);
+        expect(cubit.state.actionError, 'Action section failed.');
+
+        await cubit.close();
+      },
+    );
   });
 }

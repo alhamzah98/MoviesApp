@@ -11,25 +11,25 @@ class HistoryCubit extends Cubit<HistoryState> {
   HistoryCubit({
     required ObserveHistory observeHistory,
     required RecordHistory recordHistory,
-  })  : _observeHistory = observeHistory,
-        _recordHistory = recordHistory,
-        super(const HistoryState());
+  }) : _observeHistory = observeHistory,
+       _recordHistory = recordHistory,
+       super(const HistoryState());
 
   final ObserveHistory _observeHistory;
   final RecordHistory _recordHistory;
 
   StreamSubscription<List<LibraryMovie>>? _subscription;
 
-  void startObserving() {
-    if (_subscription != null) {
+  void startObserving({bool force = false}) {
+    if (force) {
+      _subscription?.cancel();
+      _subscription = null;
+    } else if (_subscription != null) {
       return;
     }
 
     emit(
-      state.copyWith(
-        status: HistoryStatus.loading,
-        clearErrorMessage: true,
-      ),
+      state.copyWith(status: HistoryStatus.loading, clearErrorMessage: true),
     );
 
     _subscription = _observeHistory().listen(
@@ -46,6 +46,8 @@ class HistoryCubit extends Cubit<HistoryState> {
         );
       },
       onError: (Object error) {
+        _subscription?.cancel();
+        _subscription = null;
         if (isClosed) {
           return;
         }
@@ -57,6 +59,18 @@ class HistoryCubit extends Cubit<HistoryState> {
         );
       },
     );
+  }
+
+  /// Retries the observation stream, cancelling any stale subscription.
+  void retry() {
+    startObserving(force: true);
+  }
+
+  /// Clears in-memory library data and cancels active subscriptions (e.g. on sign-out/UID change).
+  void reset() {
+    _subscription?.cancel();
+    _subscription = null;
+    emit(const HistoryState());
   }
 
   Future<void> recordMovieView(LibraryMovie movie) async {
@@ -76,11 +90,7 @@ class HistoryCubit extends Cubit<HistoryState> {
       if (isClosed) {
         return;
       }
-      emit(
-        state.copyWith(
-          pendingMovieIds: _withoutPending(movie.movieId),
-        ),
-      );
+      emit(state.copyWith(pendingMovieIds: _withoutPending(movie.movieId)));
     } catch (error) {
       if (isClosed) {
         return;

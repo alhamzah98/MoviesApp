@@ -3,9 +3,7 @@ import 'package:movies_app/core/errors/app_exception.dart';
 class AuthValidators {
   AuthValidators._();
 
-  static final RegExp _emailPattern = RegExp(
-    r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
-  );
+  static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
   static String normalizeEmail(String email) {
     return email.trim().toLowerCase();
@@ -74,10 +72,7 @@ class AuthValidators {
 
   static void validateName(String name) {
     if (normalizeName(name).isEmpty) {
-      throw const AppException(
-        'Please enter your name.',
-        code: 'invalid-name',
-      );
+      throw const AppException('Please enter your name.', code: 'invalid-name');
     }
   }
 

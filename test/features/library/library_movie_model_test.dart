@@ -60,13 +60,28 @@ void main() {
     });
 
     test('converts integer, double, and string ratings', () {
-      expect(LibraryMovieModel.fromMap({'movieId': 1, 'title': 'A', 'rating': 8}).rating, 8);
       expect(
-        LibraryMovieModel.fromMap({'movieId': 1, 'title': 'A', 'rating': 7.5}).rating,
+        LibraryMovieModel.fromMap({
+          'movieId': 1,
+          'title': 'A',
+          'rating': 8,
+        }).rating,
+        8,
+      );
+      expect(
+        LibraryMovieModel.fromMap({
+          'movieId': 1,
+          'title': 'A',
+          'rating': 7.5,
+        }).rating,
         7.5,
       );
       expect(
-        LibraryMovieModel.fromMap({'movieId': 1, 'title': 'A', 'rating': '6.25'}).rating,
+        LibraryMovieModel.fromMap({
+          'movieId': 1,
+          'title': 'A',
+          'rating': '6.25',
+        }).rating,
         6.25,
       );
     });
@@ -95,10 +110,7 @@ void main() {
     });
 
     test('falls back to the document id when movieId is missing', () {
-      final model = LibraryMovieModel.fromMap(
-        {'title': 'A'},
-        documentId: '99',
-      );
+      final model = LibraryMovieModel.fromMap({'title': 'A'}, documentId: '99');
 
       expect(model.movieId, 99);
     });
@@ -158,11 +170,7 @@ void main() {
     test('history write map excludes watchlist-only fields', () {
       final addedAt = DateTime.utc(2026, 1, 1);
       final map = LibraryMovieModel.fromEntity(
-        LibraryMovie(
-          movieId: 1,
-          title: 'Dune',
-          addedAt: addedAt,
-        ),
+        LibraryMovie(movieId: 1, title: 'Dune', addedAt: addedAt),
       ).toHistoryWriteMap();
 
       expect(map.containsKey('addedAt'), isFalse);

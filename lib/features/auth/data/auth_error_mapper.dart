@@ -26,7 +26,8 @@ class AuthErrorMapper {
         'Please sign in again before continuing this action.',
       'permission-denied' =>
         'You do not have permission to complete this action.',
-      'unavailable' => 'The service is temporarily unavailable. Please try again.',
+      'unavailable' =>
+        'The service is temporarily unavailable. Please try again.',
       'google-canceled' => 'Google sign-in was cancelled.',
       'google-config' =>
         'Google Sign-In is not configured correctly on this device.',

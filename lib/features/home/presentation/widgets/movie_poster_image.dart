@@ -29,16 +29,12 @@ class MoviePosterImage extends StatelessWidget {
                 fit: fit,
                 width: double.infinity,
                 height: double.infinity,
-                placeholder: (_, _) => const _PosterPlaceholder(
-                  icon: Icons.local_movies_outlined,
-                ),
-                errorWidget: (_, _, _) => const _PosterPlaceholder(
-                  icon: Icons.broken_image_outlined,
-                ),
+                placeholder: (_, _) =>
+                    const _PosterPlaceholder(icon: Icons.local_movies_outlined),
+                errorWidget: (_, _, _) =>
+                    const _PosterPlaceholder(icon: Icons.broken_image_outlined),
               )
-            : const _PosterPlaceholder(
-                icon: Icons.broken_image_outlined,
-              ),
+            : const _PosterPlaceholder(icon: Icons.broken_image_outlined),
       ),
     );
   }
@@ -54,11 +50,7 @@ class _PosterPlaceholder extends StatelessWidget {
     return ColoredBox(
       color: AppColors.inputFill,
       child: Center(
-        child: Icon(
-          icon,
-          color: AppColors.onBackgroundSecondary,
-          size: 28,
-        ),
+        child: Icon(icon, color: AppColors.onBackgroundSecondary, size: 28),
       ),
     );
   }

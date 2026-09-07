@@ -25,6 +25,7 @@ class MovieModel {
     this.mediumCoverImage,
     this.largeCoverImage,
     this.cast = const [],
+    this.screenshotUrls = const [],
   });
 
   final int id;
@@ -48,6 +49,7 @@ class MovieModel {
   final String? mediumCoverImage;
   final String? largeCoverImage;
   final List<CastMemberModel> cast;
+  final List<String> screenshotUrls;
 
   factory MovieModel.fromJson(Map<String, dynamic> json) {
     final genres = JsonParsers.asList<String>(json['genres'], (element) {
@@ -66,6 +68,19 @@ class MovieModel {
       CastMemberModel.tryParse,
     );
 
+    final screenshotUrls = <String>[];
+    for (var i = 1; i <= 3; i++) {
+      final large = JsonParsers.asString(json['large_screenshot_image$i'])?.trim();
+      final medium = JsonParsers.asString(json['medium_screenshot_image$i'])?.trim();
+      final url = (large != null && large.isNotEmpty)
+          ? large
+          : (medium != null && medium.isNotEmpty ? medium : null);
+
+      if (url != null && url.isNotEmpty && !screenshotUrls.contains(url)) {
+        screenshotUrls.add(url);
+      }
+    }
+
     return MovieModel(
       id: JsonParsers.asIntOr(json['id'], 0),
       title: JsonParsers.asStringOrEmpty(json['title']),
@@ -83,12 +98,14 @@ class MovieModel {
       likeCount: JsonParsers.asIntOr(json['like_count'], 0),
       downloadCount: JsonParsers.asIntOr(json['download_count'], 0),
       backgroundImage: JsonParsers.asString(json['background_image']),
-      backgroundImageOriginal:
-          JsonParsers.asString(json['background_image_original']),
+      backgroundImageOriginal: JsonParsers.asString(
+        json['background_image_original'],
+      ),
       smallCoverImage: JsonParsers.asString(json['small_cover_image']),
       mediumCoverImage: JsonParsers.asString(json['medium_cover_image']),
       largeCoverImage: JsonParsers.asString(json['large_cover_image']),
       cast: cast,
+      screenshotUrls: screenshotUrls,
     );
   }
 
@@ -127,6 +144,7 @@ class MovieModel {
       mediumCoverImage: mediumCoverImage,
       largeCoverImage: largeCoverImage,
       cast: cast.map((member) => member.toEntity()).toList(growable: false),
+      screenshotUrls: screenshotUrls,
     );
   }
 }

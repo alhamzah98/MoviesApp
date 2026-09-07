@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
+import 'package:movies_app/core/errors/app_exception.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
+import 'package:movies_app/features/auth/domain/auth_validators.dart';
+import 'package:movies_app/features/auth/presentation/cubit/password_reset_state.dart';
 import 'package:movies_app/features/auth/presentation/widgets/auth_app_bar.dart';
 import 'package:movies_app/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:movies_app/shared/widgets/movies_primary_button.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+  const ForgotPasswordScreen({this.coordinator, super.key});
+
+  final AuthCoordinator? coordinator;
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
@@ -15,6 +21,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -22,8 +29,82 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  /// Placeholder until password-reset email verification is implemented.
-  void _onVerifyEmailPressed() {}
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.inputFill,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _handleBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go(RouteConstants.login);
+    }
+  }
+
+  Future<void> _onVerifyEmailPressed() async {
+    if (_isSubmitting) {
+      return;
+    }
+
+    final coordinator = widget.coordinator;
+    if (coordinator != null && coordinator.isConfigurationUnavailable) {
+      _showMessage(
+        coordinator.bootstrapErrorMessage ??
+            'Firebase configuration is absent. Please configure google-services.json.',
+      );
+      return;
+    }
+
+    final email = _emailController.text;
+
+    try {
+      AuthValidators.validateEmail(email);
+    } on AppException catch (e) {
+      _showMessage(e.message);
+      return;
+    }
+
+    final resetCubit = coordinator?.passwordResetCubit;
+    if (resetCubit == null) {
+      _showMessage('Password reset service is currently unavailable.');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      await resetCubit.submit(AuthValidators.normalizeEmail(email));
+
+      if (!mounted) return;
+
+      if (resetCubit.state.status == PasswordResetStatus.success) {
+        _showMessage(
+          'If an account exists with this email address, a password reset link has been sent.',
+        );
+      } else if (resetCubit.state.status == PasswordResetStatus.failure) {
+        _showMessage(
+          resetCubit.state.errorMessage ??
+              'Unable to send reset email. Please try again.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Unable to send reset email. Please try again.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +114,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       backgroundColor: AppColors.background,
       appBar: AuthAppBar(
         title: 'Forget Password',
-        onBack: () => context.go(RouteConstants.login),
+        onBack: _handleBack,
       ),
       body: SafeArea(
         top: false,
@@ -45,7 +126,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(16, 0, 16, 24 + bottomInset),
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 24),
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 24,
+                ),
                 child: Column(
                   children: [
                     SizedBox(
@@ -56,6 +139,40 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         fit: BoxFit.contain,
                       ),
                     ),
+                    if (widget.coordinator?.isConfigurationUnavailable ?? false) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline,
+                              color: AppColors.error,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                widget.coordinator?.bootstrapErrorMessage ??
+                                    'Firebase configuration is absent. Please configure google-services.json.',
+                                style: const TextStyle(
+                                  color: AppColors.onBackground,
+                                  fontSize: 12,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     AuthTextField(
                       controller: _emailController,
@@ -67,7 +184,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 24),
                     MoviesPrimaryButton(
                       label: 'Verify Email',
-                      onPressed: _onVerifyEmailPressed,
+                      isLoading: _isSubmitting,
+                      onPressed: _isSubmitting ? null : _onVerifyEmailPressed,
                     ),
                   ],
                 ),

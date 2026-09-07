@@ -77,10 +77,7 @@ class JsonParsers {
     return null;
   }
 
-  static List<T> asList<T>(
-    Object? value,
-    T? Function(Object? element) mapper,
-  ) {
+  static List<T> asList<T>(Object? value, T? Function(Object? element) mapper) {
     if (value is! List) {
       return const [];
     }

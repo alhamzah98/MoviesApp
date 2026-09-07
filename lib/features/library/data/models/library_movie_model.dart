@@ -36,7 +36,8 @@ class LibraryMovieModel {
     String? documentId,
   }) {
     return LibraryMovieModel(
-      movieId: JsonParsers.asInt(map['movieId']) ??
+      movieId:
+          JsonParsers.asInt(map['movieId']) ??
           JsonParsers.asInt(documentId) ??
           0,
       title: JsonParsers.asStringOrEmpty(map['title']).trim(),
@@ -44,9 +45,15 @@ class LibraryMovieModel {
       rating: JsonParsers.asDoubleOr(map['rating'], 0),
       genres: JsonParsers.asList<String>(map['genres'], _genreFrom),
       summary: JsonParsers.asStringOrEmpty(map['summary']).trim(),
-      mediumCoverImage: _nullableTrimmed(JsonParsers.asString(map['mediumCoverImage'])),
-      largeCoverImage: _nullableTrimmed(JsonParsers.asString(map['largeCoverImage'])),
-      backgroundImage: _nullableTrimmed(JsonParsers.asString(map['backgroundImage'])),
+      mediumCoverImage: _nullableTrimmed(
+        JsonParsers.asString(map['mediumCoverImage']),
+      ),
+      largeCoverImage: _nullableTrimmed(
+        JsonParsers.asString(map['largeCoverImage']),
+      ),
+      backgroundImage: _nullableTrimmed(
+        JsonParsers.asString(map['backgroundImage']),
+      ),
       addedAt: parseDateTime(map['addedAt']),
       lastViewedAt: parseDateTime(map['lastViewedAt']),
       viewCount: JsonParsers.asIntOr(map['viewCount'], 0),
@@ -128,15 +135,11 @@ class LibraryMovieModel {
   }
 
   Map<String, dynamic> toWatchlistWriteMap() {
-    return {
-      ..._snapshotMap(),
-    };
+    return {..._snapshotMap()};
   }
 
   Map<String, dynamic> toHistoryWriteMap() {
-    return {
-      ..._snapshotMap(),
-    };
+    return {..._snapshotMap()};
   }
 
   Map<String, dynamic> _snapshotMap() {

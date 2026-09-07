@@ -42,7 +42,9 @@ class MoviesRemoteDataSourceImpl implements MoviesRemoteDataSource {
     final data = _requireDataMap(response);
     final movieJson = JsonParsers.asMap(data['movie']);
     if (movieJson == null) {
-      throw const AppException('Movie details are missing from the API response.');
+      throw const AppException(
+        'Movie details are missing from the API response.',
+      );
     }
 
     final movie = MovieModel.tryParse(movieJson);
@@ -91,7 +93,8 @@ class MoviesRemoteDataSourceImpl implements MoviesRemoteDataSource {
 
       final status = JsonParsers.asString(payload['status'])?.toLowerCase();
       if (status != 'ok') {
-        final message = JsonParsers.asString(payload['status_message']) ??
+        final message =
+            JsonParsers.asString(payload['status_message']) ??
             'The movies API returned an error.';
         throw AppException(message, statusCode: response.statusCode);
       }
@@ -162,6 +165,7 @@ class MoviesRemoteDataSourceImpl implements MoviesRemoteDataSource {
           originalError: error,
         );
       case DioExceptionType.badCertificate:
+      case DioExceptionType.transformTimeout:
       case DioExceptionType.unknown:
         return AppException(
           'An unexpected network error occurred.',

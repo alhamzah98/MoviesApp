@@ -121,10 +121,7 @@ class _OnboardingCopyAndActions extends StatelessWidget {
         ),
         if (page.showBackButton) ...[
           const SizedBox(height: 16),
-          MoviesOutlinedButton(
-            label: 'Back',
-            onPressed: onBackPressed,
-          ),
+          MoviesOutlinedButton(label: 'Back', onPressed: onBackPressed),
         ],
       ],
     );

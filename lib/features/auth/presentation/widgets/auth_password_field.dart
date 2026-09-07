@@ -52,7 +52,9 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
           suffixIcon: IconButton(
             onPressed: () => setState(() => _obscureText = !_obscureText),
             icon: Icon(
-              _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              _obscureText
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
               color: AppColors.onBackground,
               size: 24,
             ),

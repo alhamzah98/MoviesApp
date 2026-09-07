@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
 import 'package:movies_app/core/storage/app_preferences.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
@@ -10,10 +11,12 @@ import 'package:movies_app/features/onboarding/presentation/widgets/onboarding_c
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({
     required this.preferences,
+    this.coordinator,
     super.key,
   });
 
   final AppPreferences preferences;
+  final AuthCoordinator? coordinator;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -73,7 +76,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (!mounted) {
         return;
       }
-      context.go(RouteConstants.login);
+      final destination = widget.coordinator?.isAuthenticated == true
+          ? RouteConstants.home
+          : RouteConstants.login;
+      context.go(destination);
     } catch (_) {
       if (!mounted) {
         return;
@@ -82,7 +88,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       setState(() => _isCompletingOnboarding = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not save onboarding progress. Please try again.'),
+          content: Text(
+            'Could not save onboarding progress. Please try again.',
+          ),
         ),
       );
     }
@@ -106,7 +114,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               OnboardingBackground(page: page),
               OnboardingContentPanel(
                 page: page,
-                onPrimaryPressed: _isCompletingOnboarding ? null : _goToNextPage,
+                onPrimaryPressed: _isCompletingOnboarding
+                    ? null
+                    : _goToNextPage,
                 onBackPressed: _goToPreviousPage,
               ),
             ],

@@ -31,10 +31,7 @@ class MoviesRepositoryImpl implements MoviesRepository {
     } on AppException {
       rethrow;
     } catch (error) {
-      throw AppException(
-        'Failed to load movies data.',
-        originalError: error,
-      );
+      throw AppException('Failed to load movies data.', originalError: error);
     }
   }
 }

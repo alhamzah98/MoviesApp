@@ -6,10 +6,9 @@ import 'package:movies_app/features/movies/domain/entities/movies_query.dart';
 import 'package:movies_app/features/movies/domain/use_cases/get_movies.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  HomeCubit({
-    required GetMovies getMovies,
-  })  : _getMovies = getMovies,
-        super(const HomeState());
+  HomeCubit({required GetMovies getMovies})
+    : _getMovies = getMovies,
+      super(const HomeState());
 
   static const MoviesQuery availableNowQuery = MoviesQuery(
     page: 1,
@@ -103,8 +102,9 @@ class HomeCubit extends Cubit<HomeState> {
     final actionMovies = isAvailableNow
         ? state.actionMovies
         : (result.error == null ? result.movies : state.actionMovies);
-    final availableError =
-        isAvailableNow ? result.error : state.availableNowError;
+    final availableError = isAvailableNow
+        ? result.error
+        : state.availableNowError;
     final actionError = isAvailableNow ? state.actionError : result.error;
 
     emit(

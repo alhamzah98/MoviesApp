@@ -13,10 +13,7 @@ import 'package:movies_app/features/home/presentation/widgets/movie_poster_image
 import 'package:movies_app/features/movies/domain/entities/movie.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({
-    required this.onSeeMore,
-    super.key,
-  });
+  const HomeScreen({required this.onSeeMore, super.key});
 
   final VoidCallback onSeeMore;
 
@@ -107,9 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                        SliverToBoxAdapter(
-                          child: SizedBox(height: 18 * scale),
-                        ),
+                        SliverToBoxAdapter(child: SizedBox(height: 18 * scale)),
                         SliverToBoxAdapter(
                           child: HomeSectionHeader(
                             title: 'Action',
@@ -166,10 +161,7 @@ class _HomeBackground extends StatelessWidget {
         if (imageUrl.trim().isNotEmpty)
           Opacity(
             opacity: 0.45,
-            child: MoviePosterImage(
-              imageUrl: imageUrl,
-              borderRadius: 0,
-            ),
+            child: MoviePosterImage(imageUrl: imageUrl, borderRadius: 0),
           )
         else
           const ColoredBox(color: AppColors.background),
@@ -239,10 +231,7 @@ class _AvailableNowSection extends StatelessWidget {
           onPageChanged: onPageChanged,
         ),
         if (state.availableNowError != null)
-          HomeSectionError(
-            message: state.availableNowError!,
-            onRetry: onRetry,
-          ),
+          HomeSectionError(message: state.availableNowError!, onRetry: onRetry),
       ],
     );
   }
@@ -264,10 +253,7 @@ class _ActionSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.actionError != null && state.actionMovies.isEmpty) {
-      return HomeSectionError(
-        message: state.actionError!,
-        onRetry: onRetry,
-      );
+      return HomeSectionError(message: state.actionError!, onRetry: onRetry);
     }
 
     if (state.actionMovies.isEmpty) {
@@ -310,10 +296,7 @@ class _ActionSection extends StatelessWidget {
           ),
         ),
         if (state.actionError != null)
-          HomeSectionError(
-            message: state.actionError!,
-            onRetry: onRetry,
-          ),
+          HomeSectionError(message: state.actionError!, onRetry: onRetry),
         if (state.status == HomeStatus.failure && !state.hasAnyMovies)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),

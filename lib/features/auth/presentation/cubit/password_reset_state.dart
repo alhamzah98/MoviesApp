@@ -1,11 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum PasswordResetStatus {
-  initial,
-  submitting,
-  success,
-  failure,
-}
+enum PasswordResetStatus { initial, submitting, success, failure }
 
 class PasswordResetState extends Equatable {
   const PasswordResetState({
@@ -25,8 +20,9 @@ class PasswordResetState extends Equatable {
   }) {
     return PasswordResetState(
       status: status ?? this.status,
-      errorMessage:
-          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
     );
   }
 

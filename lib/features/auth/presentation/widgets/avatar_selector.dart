@@ -73,9 +73,7 @@ class _AvatarOption extends StatelessWidget {
         curve: Curves.easeOutCubic,
         width: size,
         height: size,
-        child: ClipOval(
-          child: Image.asset(assetPath, fit: BoxFit.cover),
-        ),
+        child: ClipOval(child: Image.asset(assetPath, fit: BoxFit.cover)),
       ),
     );
   }

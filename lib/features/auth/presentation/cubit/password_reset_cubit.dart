@@ -5,7 +5,7 @@ import 'package:movies_app/features/auth/presentation/cubit/password_reset_state
 
 class PasswordResetCubit extends Cubit<PasswordResetState> {
   PasswordResetCubit(this._sendPasswordResetEmail)
-      : super(const PasswordResetState());
+    : super(const PasswordResetState());
 
   final SendPasswordResetEmail _sendPasswordResetEmail;
 

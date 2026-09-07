@@ -46,23 +46,26 @@ class MoviesQuery extends Equatable {
       limit: limit ?? this.limit,
       page: page ?? this.page,
       quality: clearQuality ? null : (quality ?? this.quality),
-      minimumRating:
-          clearMinimumRating ? null : (minimumRating ?? this.minimumRating),
+      minimumRating: clearMinimumRating
+          ? null
+          : (minimumRating ?? this.minimumRating),
       queryTerm: clearQueryTerm ? null : (queryTerm ?? this.queryTerm),
       genre: clearGenre ? null : (genre ?? this.genre),
       sortBy: clearSortBy ? null : (sortBy ?? this.sortBy),
       orderBy: clearOrderBy ? null : (orderBy ?? this.orderBy),
-      withRtRatings:
-          clearWithRtRatings ? null : (withRtRatings ?? this.withRtRatings),
+      withRtRatings: clearWithRtRatings
+          ? null
+          : (withRtRatings ?? this.withRtRatings),
     );
   }
 
   MoviesQuery validated() {
     final safeLimit = limit.clamp(1, ApiConstants.maxLimit);
     final safePage = page < 1 ? ApiConstants.defaultPage : page;
-    final safeRating = minimumRating == null
-        ? null
-        : minimumRating!.clamp(ApiConstants.minRating, ApiConstants.maxRating);
+    final safeRating = minimumRating?.clamp(
+      ApiConstants.minRating,
+      ApiConstants.maxRating,
+    );
 
     return copyWith(
       limit: safeLimit,
@@ -73,10 +76,7 @@ class MoviesQuery extends Equatable {
   }
 
   Map<String, dynamic> toQueryParameters() {
-    final parameters = <String, dynamic>{
-      'limit': limit,
-      'page': page,
-    };
+    final parameters = <String, dynamic>{'limit': limit, 'page': page};
 
     final qualityValue = quality?.trim();
     if (qualityValue != null && qualityValue.isNotEmpty) {
@@ -116,14 +116,14 @@ class MoviesQuery extends Equatable {
 
   @override
   List<Object?> get props => [
-        limit,
-        page,
-        quality,
-        minimumRating,
-        queryTerm,
-        genre,
-        sortBy,
-        orderBy,
-        withRtRatings,
-      ];
+    limit,
+    page,
+    quality,
+    minimumRating,
+    queryTerm,
+    genre,
+    sortBy,
+    orderBy,
+    withRtRatings,
+  ];
 }

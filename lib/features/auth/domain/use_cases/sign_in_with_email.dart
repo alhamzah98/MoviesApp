@@ -7,10 +7,7 @@ class SignInWithEmail {
 
   final AuthRepository _repository;
 
-  Future<AppUser> call({
-    required String email,
-    required String password,
-  }) {
+  Future<AppUser> call({required String email, required String password}) {
     AuthValidators.validateEmail(email);
     AuthValidators.validatePassword(password);
 

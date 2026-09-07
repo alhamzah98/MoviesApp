@@ -1,14 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:movies_app/features/movies/domain/entities/movie.dart';
 
-enum HomeStatus {
-  initial,
-  loading,
-  success,
-  partialSuccess,
-  empty,
-  failure,
-}
+enum HomeStatus { initial, loading, success, partialSuccess, empty, failure }
 
 class HomeState extends Equatable {
   const HomeState({
@@ -46,17 +39,16 @@ class HomeState extends Equatable {
       availableNowError: clearAvailableNowError
           ? null
           : (availableNowError ?? this.availableNowError),
-      actionError:
-          clearActionError ? null : (actionError ?? this.actionError),
+      actionError: clearActionError ? null : (actionError ?? this.actionError),
     );
   }
 
   @override
   List<Object?> get props => [
-        status,
-        availableNowMovies,
-        actionMovies,
-        availableNowError,
-        actionError,
-      ];
+    status,
+    availableNowMovies,
+    actionMovies,
+    availableNowError,
+    actionError,
+  ];
 }

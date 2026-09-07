@@ -2,12 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:movies_app/features/movies/domain/entities/movie.dart';
 import 'package:movies_app/features/movies/domain/entities/movies_query.dart';
 
-enum MoviesStatus {
-  initial,
-  loading,
-  success,
-  failure,
-}
+enum MoviesStatus { initial, loading, success, failure }
 
 class MoviesState extends Equatable {
   const MoviesState({
@@ -32,11 +27,9 @@ class MoviesState extends Equatable {
   final bool isLoadingMore;
   final String? paginationErrorMessage;
 
-  bool get isInitialLoading =>
-      status == MoviesStatus.loading && movies.isEmpty;
+  bool get isInitialLoading => status == MoviesStatus.loading && movies.isEmpty;
 
-  bool get isEmptySuccess =>
-      status == MoviesStatus.success && movies.isEmpty;
+  bool get isEmptySuccess => status == MoviesStatus.success && movies.isEmpty;
 
   MoviesState copyWith({
     MoviesStatus? status,
@@ -58,8 +51,9 @@ class MoviesState extends Equatable {
       currentPage: currentPage ?? this.currentPage,
       totalMovieCount: totalMovieCount ?? this.totalMovieCount,
       hasReachedEnd: hasReachedEnd ?? this.hasReachedEnd,
-      errorMessage:
-          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       paginationErrorMessage: clearPaginationErrorMessage
           ? null
@@ -69,14 +63,14 @@ class MoviesState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        movies,
-        query,
-        currentPage,
-        totalMovieCount,
-        hasReachedEnd,
-        errorMessage,
-        isLoadingMore,
-        paginationErrorMessage,
-      ];
+    status,
+    movies,
+    query,
+    currentPage,
+    totalMovieCount,
+    hasReachedEnd,
+    errorMessage,
+    isLoadingMore,
+    paginationErrorMessage,
+  ];
 }
