@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/auth/domain/auth_validators.dart';
 import 'package:movies_app/features/auth/presentation/cubit/auth_state.dart';
@@ -72,11 +73,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    final l10n = AppLocalizations.of(context);
     final coordinator = widget.coordinator;
     if (coordinator != null && coordinator.isConfigurationUnavailable) {
       _showMessage(
-        coordinator.bootstrapErrorMessage ??
-            'Firebase configuration is absent. Please configure google-services.json.',
+        coordinator.bootstrapErrorMessage ?? l10n.firebaseConfigMissing,
       );
       return;
     }
@@ -99,13 +100,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       AuthValidators.validatePhoneNumber(phone);
       AuthValidators.validateAvatarId(avatarId);
     } on AppException catch (e) {
-      _showMessage(e.message);
+      _showMessage(l10n.translateError(errorCode: e.code, fallback: e.message));
       return;
     }
 
     final authCubit = coordinator?.authCubit;
     if (authCubit == null) {
-      _showMessage('Authentication service is currently unavailable.');
+      _showMessage(l10n.authServiceUnavailable);
       return;
     }
 
@@ -125,13 +126,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (authCubit.state.status == AuthStatus.failure) {
         _showMessage(
-          authCubit.state.errorMessage ??
-              'Registration failed. Please try again.',
+          l10n.translateError(
+            errorCode: authCubit.state.errorCode,
+            fallback: authCubit.state.errorMessage ?? l10n.registrationFailed,
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
-        _showMessage('Registration failed. Please try again.');
+        _showMessage(l10n.registrationFailed);
       }
     } finally {
       if (mounted) {
@@ -142,12 +145,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AuthAppBar(
-        title: 'Register',
+        title: l10n.register,
         onBack: () => context.go(RouteConstants.login),
       ),
       body: SafeArea(
@@ -191,7 +195,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Expanded(
                               child: Text(
                                 widget.coordinator?.bootstrapErrorMessage ??
-                                    'Firebase configuration is absent. Please configure google-services.json.',
+                                    l10n.firebaseConfigMissing,
                                 style: const TextStyle(
                                   color: AppColors.onBackground,
                                   fontSize: 12,
@@ -206,42 +210,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 12),
                     AuthTextField(
                       controller: _nameController,
-                      hintText: 'Name',
+                      hintText: l10n.name,
                       prefixIcon: Icons.badge_outlined,
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 24),
                     AuthTextField(
                       controller: _emailController,
-                      hintText: 'Email',
+                      hintText: l10n.email,
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
+                      textDirection: TextDirection.ltr,
                     ),
                     const SizedBox(height: 24),
                     AuthPasswordField(
                       controller: _passwordController,
-                      hintText: 'Password',
+                      hintText: l10n.password,
                       textInputAction: TextInputAction.next,
+                      textDirection: TextDirection.ltr,
                     ),
                     const SizedBox(height: 24),
                     AuthPasswordField(
                       controller: _confirmPasswordController,
-                      hintText: 'Confirm Password',
+                      hintText: l10n.confirmPassword,
                       textInputAction: TextInputAction.next,
+                      textDirection: TextDirection.ltr,
                     ),
                     const SizedBox(height: 24),
                     AuthTextField(
                       controller: _phoneController,
-                      hintText: 'Phone Number',
+                      hintText: l10n.phoneNumber,
                       prefixIcon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.done,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      textDirection: TextDirection.ltr,
                     ),
                     const SizedBox(height: 24),
                     MoviesPrimaryButton(
-                      label: 'Create Account',
+                      label: l10n.createAccount,
                       isLoading: _isSubmitting,
                       onPressed: _isSubmitting ? null : _onCreateAccountPressed,
                     ),
@@ -255,15 +263,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           color: AppColors.onBackground,
                         ),
                         children: [
-                          const TextSpan(text: 'Already Have Account ? '),
+                          TextSpan(text: '${l10n.alreadyHaveAccount} '),
                           WidgetSpan(
                             alignment: PlaceholderAlignment.baseline,
                             baseline: TextBaseline.alphabetic,
                             child: GestureDetector(
                               onTap: () => context.go(RouteConstants.login),
-                              child: const Text(
-                                'Login',
-                                style: TextStyle(
+                              child: Text(
+                                l10n.login,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w900,
                                   height: 1.2,

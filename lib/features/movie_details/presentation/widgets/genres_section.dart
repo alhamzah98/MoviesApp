@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 
 class GenresSection extends StatelessWidget {
@@ -18,14 +19,16 @@ class GenresSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Genres',
-            style: TextStyle(
+          Text(
+            l10n.genres,
+            style: const TextStyle(
               color: AppColors.onBackground,
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -47,7 +50,7 @@ class GenresSection extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    genre,
+                    l10n.translateGenre(genre),
                     style: const TextStyle(
                       color: AppColors.onBackground,
                       fontSize: 13,

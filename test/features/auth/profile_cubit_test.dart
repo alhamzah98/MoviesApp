@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
+import 'package:movies_app/features/auth/domain/entities/delete_account_result.dart';
 import 'package:movies_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:movies_app/features/auth/domain/use_cases/delete_account.dart';
 import 'package:movies_app/features/auth/domain/use_cases/get_current_user.dart';
@@ -71,8 +72,17 @@ class FakeProfileRepository implements AuthRepository {
   }
 
   @override
-  Future<void> deleteAccount() async {
+  Future<DeleteAccountResult> deleteAccount({
+    String? password,
+    bool useGoogle = false,
+  }) async {
+    if (shouldFail) {
+      return DeleteAccountResult.failedPreCleanup(
+        errorMessage: 'Account deletion failed',
+      );
+    }
     user = null;
+    return DeleteAccountResult.success;
   }
 }
 

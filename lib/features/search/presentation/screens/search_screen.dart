@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/home/presentation/widgets/home_movie_card.dart';
 import 'package:movies_app/features/home/presentation/widgets/home_section_error.dart';
@@ -130,6 +131,8 @@ class _SearchScreenState extends State<SearchScreen> {
     SearchState state,
     double bottomNavReserve,
   ) {
+    final l10n = AppLocalizations.of(context);
+
     if (state.isInitial) {
       return Center(
         child: SingleChildScrollView(
@@ -150,7 +153,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(16, 24, 16, bottomNavReserve),
           child: _SearchErrorView(
-            message: state.errorMessage ?? 'Failed to search movies.',
+            message: state.errorMessage ?? l10n.failedToSearch,
             onRetry: () => _searchCubit.retry(),
           ),
         ),
@@ -211,7 +214,7 @@ class _SearchScreenState extends State<SearchScreen> {
             child: Padding(
               padding: const EdgeInsets.only(top: 8),
               child: HomeSectionError(
-                message: state.paginationErrorMessage!,
+                message: l10n.failedToLoadMovies,
                 onRetry: () => _searchCubit.loadNextPage(),
               ),
             ),
@@ -239,6 +242,8 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       height: 52,
       decoration: BoxDecoration(
@@ -263,21 +268,22 @@ class _SearchBar extends StatelessWidget {
                 color: AppColors.onBackground,
                 fontSize: 16,
               ),
-              decoration: const InputDecoration(
-                hintText: 'Search movies...',
-                hintStyle: TextStyle(
+              decoration: InputDecoration(
+                hintText: l10n.searchHint,
+                hintStyle: const TextStyle(
                   color: AppColors.onBackgroundSecondary,
                   fontSize: 16,
                 ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),
           if (hasText)
             IconButton(
               onPressed: onClear,
+              tooltip: l10n.clearSearchTooltip,
               icon: const Icon(
                 Icons.close_rounded,
                 color: AppColors.onBackgroundSecondary,
@@ -298,6 +304,8 @@ class _SearchInitialView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -307,20 +315,20 @@ class _SearchInitialView extends StatelessWidget {
           color: AppColors.onBackgroundSecondary.withValues(alpha: 0.45),
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Search for Movies',
+        Text(
+          l10n.searchMoviesTitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: AppColors.onBackground,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Find movies by title, year, or keywords.',
+        Text(
+          l10n.searchMoviesSubtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: AppColors.onBackgroundSecondary,
             fontSize: 14,
           ),
@@ -337,6 +345,8 @@ class _SearchEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -347,7 +357,7 @@ class _SearchEmptyView extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'No movies found for "$query"',
+          l10n.noMoviesFoundForQuery(query),
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.onBackground,
@@ -356,10 +366,10 @@ class _SearchEmptyView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Check your spelling or try different keywords.',
+        Text(
+          l10n.searchCheckSpelling,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: AppColors.onBackgroundSecondary,
             fontSize: 14,
           ),
@@ -380,6 +390,8 @@ class _SearchErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -409,9 +421,9 @@ class _SearchErrorView extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
-          child: const Text(
-            'Try again',
-            style: TextStyle(fontWeight: FontWeight.w600),
+          child: Text(
+            l10n.tryAgain,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       ],

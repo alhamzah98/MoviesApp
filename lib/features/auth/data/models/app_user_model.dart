@@ -14,6 +14,7 @@ class AppUserModel {
     this.createdAt,
     this.updatedAt,
     this.lastLoginAt,
+    this.providerIds = const [],
   });
 
   final String uid;
@@ -26,6 +27,7 @@ class AppUserModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? lastLoginAt;
+  final List<String> providerIds;
 
   factory AppUserModel.fromMap(Map<String, dynamic> map) {
     return AppUserModel(
@@ -39,6 +41,10 @@ class AppUserModel {
       createdAt: parseDateTime(map['createdAt']),
       updatedAt: parseDateTime(map['updatedAt']),
       lastLoginAt: parseDateTime(map['lastLoginAt']),
+      providerIds: (map['providerIds'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList(growable: false) ??
+          const [],
     );
   }
 
@@ -60,6 +66,10 @@ class AppUserModel {
       createdAt: createdAt,
       updatedAt: updatedAt,
       lastLoginAt: lastLoginAt,
+      providerIds: user.providerData
+          .map((info) => info.providerId)
+          .where((id) => id.isNotEmpty)
+          .toList(growable: false),
     );
   }
 
@@ -74,6 +84,7 @@ class AppUserModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? lastLoginAt,
+    List<String> providerIds = const [],
   }) {
     return AppUserModel(
       uid: uid,
@@ -86,6 +97,7 @@ class AppUserModel {
       createdAt: createdAt,
       updatedAt: updatedAt,
       lastLoginAt: lastLoginAt,
+      providerIds: providerIds,
     );
   }
 
@@ -137,6 +149,7 @@ class AppUserModel {
       isEmailVerified: isEmailVerified,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      providerIds: providerIds,
     );
   }
 

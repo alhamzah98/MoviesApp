@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
+import 'package:movies_app/features/auth/domain/entities/delete_account_result.dart';
 import 'package:movies_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:movies_app/features/auth/domain/use_cases/observe_auth_state.dart';
 import 'package:movies_app/features/auth/domain/use_cases/register_with_email.dart';
@@ -119,12 +120,18 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> deleteAccount() async {
+  Future<DeleteAccountResult> deleteAccount({
+    String? password,
+    bool useGoogle = false,
+  }) async {
     if (shouldFail) {
-      throw AppException(failureMessage);
+      return DeleteAccountResult.failedPreCleanup(
+        errorMessage: failureMessage,
+      );
     }
     currentUser = null;
     authStreamController.add(null);
+    return DeleteAccountResult.success;
   }
 }
 

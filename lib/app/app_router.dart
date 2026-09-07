@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
 import 'package:movies_app/core/di/app_dependencies.dart';

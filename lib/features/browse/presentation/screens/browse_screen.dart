@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/browse/presentation/constants/browse_genres.dart';
 import 'package:movies_app/features/browse/presentation/cubit/browse_cubit.dart';
@@ -115,6 +116,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
     BrowseState state,
     double bottomNavReserve,
   ) {
+    final l10n = AppLocalizations.of(context);
+
     if (state.isInitialLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -127,7 +130,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(16, 24, 16, bottomNavReserve),
           child: _BrowseErrorView(
-            message: state.errorMessage ?? 'Failed to load movies.',
+            message: state.errorMessage ?? l10n.failedToLoadGenre,
             onRetry: () => _browseCubit.retry(),
           ),
         ),
@@ -189,7 +192,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
             child: Padding(
               padding: const EdgeInsets.only(top: 8),
               child: HomeSectionError(
-                message: state.paginationErrorMessage!,
+                message: l10n.failedToLoadMovies,
                 onRetry: () => _browseCubit.loadNextPage(),
               ),
             ),
@@ -248,6 +251,8 @@ class _GenreChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -261,7 +266,7 @@ class _GenreChip extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            genre,
+            l10n.translateGenre(genre),
             style: TextStyle(
               color: isSelected ? AppColors.onPrimary : AppColors.onBackground,
               fontSize: 14,
@@ -285,6 +290,8 @@ class _BrowseErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -314,9 +321,9 @@ class _BrowseErrorView extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
-          child: const Text(
-            'Try again',
-            style: TextStyle(fontWeight: FontWeight.w600),
+          child: Text(
+            l10n.tryAgain,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -331,6 +338,8 @@ class _BrowseEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -341,7 +350,7 @@ class _BrowseEmptyView extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'No movies found for $genre',
+          l10n.noMoviesFoundForGenre(genre),
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.onBackground,
@@ -350,10 +359,10 @@ class _BrowseEmptyView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Try selecting another genre from the top bar.',
+        Text(
+          l10n.tryAnotherGenre,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             color: AppColors.onBackgroundSecondary,
             fontSize: 14,
           ),

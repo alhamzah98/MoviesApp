@@ -11,6 +11,7 @@ class AppUser extends Equatable {
     this.isEmailVerified = false,
     this.createdAt,
     this.updatedAt,
+    this.providerIds = const [],
   });
 
   final String uid;
@@ -22,6 +23,36 @@ class AppUser extends Equatable {
   final bool isEmailVerified;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final List<String> providerIds;
+
+  bool get hasPasswordProvider => providerIds.contains('password');
+  bool get hasGoogleProvider => providerIds.contains('google.com');
+
+  AppUser copyWith({
+    String? uid,
+    String? name,
+    String? email,
+    String? phoneNumber,
+    String? photoUrl,
+    String? avatarId,
+    bool? isEmailVerified,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    List<String>? providerIds,
+  }) {
+    return AppUser(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      photoUrl: photoUrl ?? this.photoUrl,
+      avatarId: avatarId ?? this.avatarId,
+      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      providerIds: providerIds ?? this.providerIds,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -34,5 +65,6 @@ class AppUser extends Equatable {
     isEmailVerified,
     createdAt,
     updatedAt,
+    providerIds,
   ];
 }

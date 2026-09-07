@@ -1,6 +1,7 @@
 import 'package:movies_app/core/errors/app_exception.dart';
 import 'package:movies_app/features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
+import 'package:movies_app/features/auth/domain/entities/delete_account_result.dart';
 import 'package:movies_app/features/auth/domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -76,8 +77,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> deleteAccount() {
-    return _guard(() => _remoteDataSource.deleteAccount());
+  Future<DeleteAccountResult> deleteAccount({
+    String? password,
+    bool useGoogle = false,
+  }) {
+    return _guard(
+      () => _remoteDataSource.deleteAccount(
+        password: password,
+        useGoogle: useGoogle,
+      ),
+    );
   }
 
   Future<T> _guard<T>(Future<T> Function() action) async {

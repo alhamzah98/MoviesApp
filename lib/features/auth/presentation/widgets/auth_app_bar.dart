@@ -20,10 +20,15 @@ class AuthAppBar extends StatelessWidget implements PreferredSizeWidget {
           alignment: Alignment.center,
           children: [
             Align(
-              alignment: Alignment.centerLeft,
+              alignment: AlignmentDirectional.centerStart,
               child: IconButton(
                 onPressed: onBack,
-                icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+                icon: Icon(
+                  Directionality.of(context) == TextDirection.rtl
+                      ? Icons.arrow_forward
+                      : Icons.arrow_back,
+                  color: AppColors.primary,
+                ),
               ),
             ),
             Text(

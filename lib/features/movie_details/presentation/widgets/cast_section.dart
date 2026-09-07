@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/movies/domain/entities/cast_member.dart';
 
@@ -18,14 +19,16 @@ class CastSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Cast',
-            style: TextStyle(
+          Text(
+            l10n.cast,
+            style: const TextStyle(
               color: AppColors.onBackground,
               fontSize: 18,
               fontWeight: FontWeight.bold,

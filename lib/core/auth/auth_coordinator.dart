@@ -207,21 +207,28 @@ class AuthCoordinator extends ChangeNotifier {
 
       final firebaseAuth = FirebaseAuth.instance;
       final firebaseFirestore = FirebaseFirestore.instance;
-      final googleSignIn = GoogleSignIn();
-
-      final remoteDataSource = AuthFirebaseDataSource(
-        firebaseAuth: firebaseAuth,
-        firebaseFirestore: firebaseFirestore,
-        googleSignIn: googleSignIn,
-      );
-
-      final repository = AuthRepositoryImpl(remoteDataSource);
+      final googleSignIn = GoogleSignIn.instance;
 
       final libraryDataSource = LibraryFirestoreDataSource(
         firebaseAuth: firebaseAuth,
         firebaseFirestore: firebaseFirestore,
       );
       final libraryRepo = LibraryRepositoryImpl(libraryDataSource);
+
+      final remoteDataSource = AuthFirebaseDataSource(
+        firebaseAuth: firebaseAuth,
+        firebaseFirestore: firebaseFirestore,
+        googleSignIn: googleSignIn,
+        onPauseCompetingWrites: (uid) async {
+          libraryDataSource.suspendWritesFor(uid);
+          await libraryDataSource.awaitInFlightWrites();
+        },
+        onResumeCompetingWrites: (uid) {
+          libraryDataSource.resumeWritesFor(uid);
+        },
+      );
+
+      final repository = AuthRepositoryImpl(remoteDataSource);
 
       _initServices(repository, libraryRepository: libraryRepo);
 

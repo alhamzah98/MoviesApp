@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/auth/domain/auth_validators.dart';
 import 'package:movies_app/features/auth/presentation/cubit/password_reset_state.dart';
@@ -54,11 +55,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
+    final l10n = AppLocalizations.of(context);
     final coordinator = widget.coordinator;
     if (coordinator != null && coordinator.isConfigurationUnavailable) {
       _showMessage(
-        coordinator.bootstrapErrorMessage ??
-            'Firebase configuration is absent. Please configure google-services.json.',
+        coordinator.bootstrapErrorMessage ?? l10n.firebaseConfigMissing,
       );
       return;
     }
@@ -68,13 +69,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       AuthValidators.validateEmail(email);
     } on AppException catch (e) {
-      _showMessage(e.message);
+      _showMessage(l10n.translateError(errorCode: e.code, fallback: e.message));
       return;
     }
 
     final resetCubit = coordinator?.passwordResetCubit;
     if (resetCubit == null) {
-      _showMessage('Password reset service is currently unavailable.');
+      _showMessage(l10n.authServiceUnavailable);
       return;
     }
 
@@ -86,18 +87,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) return;
 
       if (resetCubit.state.status == PasswordResetStatus.success) {
-        _showMessage(
-          'If an account exists with this email address, a password reset link has been sent.',
-        );
+        _showMessage(l10n.resetPasswordSuccess);
       } else if (resetCubit.state.status == PasswordResetStatus.failure) {
         _showMessage(
-          resetCubit.state.errorMessage ??
-              'Unable to send reset email. Please try again.',
+          l10n.translateError(
+            errorCode: resetCubit.state.errorCode,
+            fallback:
+                resetCubit.state.errorMessage ?? l10n.resetPasswordFailure,
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
-        _showMessage('Unable to send reset email. Please try again.');
+        _showMessage(l10n.resetPasswordFailure);
       }
     } finally {
       if (mounted) {
@@ -108,12 +110,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AuthAppBar(
-        title: 'Forget Password',
+        title: l10n.forgotPasswordTitle,
         onBack: _handleBack,
       ),
       body: SafeArea(
@@ -161,7 +164,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             Expanded(
                               child: Text(
                                 widget.coordinator?.bootstrapErrorMessage ??
-                                    'Firebase configuration is absent. Please configure google-services.json.',
+                                    l10n.firebaseConfigMissing,
                                 style: const TextStyle(
                                   color: AppColors.onBackground,
                                   fontSize: 12,
@@ -176,14 +179,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 24),
                     AuthTextField(
                       controller: _emailController,
-                      hintText: 'Email',
+                      hintText: l10n.email,
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.done,
+                      textDirection: TextDirection.ltr,
                     ),
                     const SizedBox(height: 24),
                     MoviesPrimaryButton(
-                      label: 'Verify Email',
+                      label: l10n.verifyEmail,
                       isLoading: _isSubmitting,
                       onPressed: _isSubmitting ? null : _onVerifyEmailPressed,
                     ),

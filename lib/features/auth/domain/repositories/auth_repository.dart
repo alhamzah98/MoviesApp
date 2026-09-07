@@ -1,4 +1,5 @@
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
+import 'package:movies_app/features/auth/domain/entities/delete_account_result.dart';
 
 abstract class AuthRepository {
   Stream<AppUser?> authStateChanges();
@@ -30,5 +31,8 @@ abstract class AuthRepository {
     required String avatarId,
   });
 
-  Future<void> deleteAccount();
+  Future<DeleteAccountResult> deleteAccount({
+    String? password,
+    bool useGoogle = false,
+  });
 }

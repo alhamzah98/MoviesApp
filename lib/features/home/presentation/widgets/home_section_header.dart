@@ -50,7 +50,12 @@ class HomeSectionHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward, size: 16),
+                  Icon(
+                    Directionality.of(context) == TextDirection.rtl
+                        ? Icons.arrow_back
+                        : Icons.arrow_forward,
+                    size: 16,
+                  ),
                 ],
               ),
             ),

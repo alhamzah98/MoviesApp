@@ -1,4 +1,5 @@
 import 'package:movies_app/core/auth/auth_coordinator.dart';
+import 'package:movies_app/core/localization/locale_cubit.dart';
 import 'package:movies_app/core/network/dio_client.dart';
 import 'package:movies_app/core/storage/app_preferences.dart';
 import 'package:movies_app/features/auth/domain/repositories/auth_repository.dart';
@@ -23,6 +24,7 @@ class AppDependencies {
     required this.getMovieDetails,
     required this.getMovieSuggestions,
     required this.authCoordinator,
+    required this.localeCubit,
   });
 
   final AppPreferences appPreferences;
@@ -33,6 +35,7 @@ class AppDependencies {
   final GetMovieDetails getMovieDetails;
   final GetMovieSuggestions getMovieSuggestions;
   final AuthCoordinator authCoordinator;
+  final LocaleCubit localeCubit;
 
   static AppDependencies create({
     AppPreferences? appPreferences,
@@ -41,6 +44,7 @@ class AppDependencies {
     MoviesRepository? moviesRepository,
     AuthRepository? authRepository,
     AuthCoordinator? authCoordinator,
+    LocaleCubit? localeCubit,
   }) {
     final preferences = appPreferences ?? AppPreferences();
     final client = dioClient ?? DioClient();
@@ -50,6 +54,7 @@ class AppDependencies {
         moviesRepository ?? MoviesRepositoryImpl(remoteDataSource);
     final coordinator =
         authCoordinator ?? AuthCoordinator(authRepository: authRepository);
+    final locale = localeCubit ?? LocaleCubit(preferences: preferences);
 
     return AppDependencies._(
       appPreferences: preferences,
@@ -60,6 +65,7 @@ class AppDependencies {
       getMovieDetails: GetMovieDetails(repository),
       getMovieSuggestions: GetMovieSuggestions(repository),
       authCoordinator: coordinator,
+      localeCubit: locale,
     );
   }
 
@@ -71,6 +77,7 @@ class AppDependencies {
   );
 
   void dispose() {
+    localeCubit.close();
     authCoordinator.dispose();
   }
 }

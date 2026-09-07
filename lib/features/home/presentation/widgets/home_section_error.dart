@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 
 class HomeSectionError extends StatelessWidget {
@@ -13,6 +14,8 @@ class HomeSectionError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Container(
@@ -37,7 +40,7 @@ class HomeSectionError extends StatelessWidget {
             TextButton(
               onPressed: onRetry,
               style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),

@@ -18,6 +18,7 @@ class PasswordResetCubit extends Cubit<PasswordResetState> {
       state.copyWith(
         status: PasswordResetStatus.submitting,
         clearErrorMessage: true,
+        clearErrorCode: true,
       ),
     );
 
@@ -27,6 +28,7 @@ class PasswordResetCubit extends Cubit<PasswordResetState> {
         state.copyWith(
           status: PasswordResetStatus.success,
           clearErrorMessage: true,
+          clearErrorCode: true,
         ),
       );
     } catch (error) {
@@ -36,6 +38,7 @@ class PasswordResetCubit extends Cubit<PasswordResetState> {
           errorMessage: error is AppException
               ? error.message
               : 'Unable to send the reset email. Please try again.',
+          errorCode: error is AppException ? error.code : null,
         ),
       );
     }

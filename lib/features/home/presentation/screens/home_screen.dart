@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/home/presentation/cubit/home_cubit.dart';
 import 'package:movies_app/features/home/presentation/cubit/home_state.dart';
@@ -48,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       key: const Key('home_screen'),
       backgroundColor: AppColors.background,
@@ -77,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Padding(
                               padding: EdgeInsets.only(top: 8 * scale),
                               child: HomeScriptHeading(
-                                'Available Now',
+                                l10n.availableNow,
                                 fontSize: 46 * scale,
                               ),
                             ),
@@ -99,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Padding(
                             padding: EdgeInsets.only(top: 8 * scale),
                             child: HomeScriptHeading(
-                              'Watch Now',
+                              l10n.watchNow,
                               fontSize: 52 * scale,
                             ),
                           ),
@@ -107,8 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         SliverToBoxAdapter(child: SizedBox(height: 18 * scale)),
                         SliverToBoxAdapter(
                           child: HomeSectionHeader(
-                            title: 'Action',
-                            actionLabel: 'See More',
+                            title: l10n.translateGenre('Action'),
+                            actionLabel: l10n.seeMore,
                             onActionPressed: widget.onSeeMore,
                           ),
                         ),
@@ -201,9 +204,11 @@ class _AvailableNowSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     if (state.availableNowError != null && state.availableNowMovies.isEmpty) {
       return HomeSectionError(
-        message: state.availableNowError!,
+        message: l10n.failedToLoadFeatured,
         onRetry: onRetry,
       );
     }
@@ -212,12 +217,12 @@ class _AvailableNowSection extends StatelessWidget {
       if (state.isLoading) {
         return SizedBox(height: 360 * scale);
       }
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Text(
-          'No new movies are available right now.',
+          l10n.noMoviesAvailable,
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.onBackgroundSecondary),
+          style: const TextStyle(color: AppColors.onBackgroundSecondary),
         ),
       );
     }
@@ -231,7 +236,10 @@ class _AvailableNowSection extends StatelessWidget {
           onPageChanged: onPageChanged,
         ),
         if (state.availableNowError != null)
-          HomeSectionError(message: state.availableNowError!, onRetry: onRetry),
+          HomeSectionError(
+            message: l10n.failedToLoadFeatured,
+            onRetry: onRetry,
+          ),
       ],
     );
   }
@@ -252,19 +260,24 @@ class _ActionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     if (state.actionError != null && state.actionMovies.isEmpty) {
-      return HomeSectionError(message: state.actionError!, onRetry: onRetry);
+      return HomeSectionError(
+        message: l10n.failedToLoadMovies,
+        onRetry: onRetry,
+      );
     }
 
     if (state.actionMovies.isEmpty) {
       if (state.isLoading) {
         return SizedBox(height: 220 * scale);
       }
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Text(
-          'No action movies found.',
-          style: TextStyle(color: AppColors.onBackgroundSecondary),
+          l10n.noActionMoviesFound,
+          style: const TextStyle(color: AppColors.onBackgroundSecondary),
         ),
       );
     }
@@ -296,7 +309,10 @@ class _ActionSection extends StatelessWidget {
           ),
         ),
         if (state.actionError != null)
-          HomeSectionError(message: state.actionError!, onRetry: onRetry),
+          HomeSectionError(
+            message: l10n.failedToLoadMovies,
+            onRetry: onRetry,
+          ),
         if (state.status == HomeStatus.failure && !state.hasAnyMovies)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
@@ -304,7 +320,7 @@ class _ActionSection extends StatelessWidget {
               child: TextButton(
                 onPressed: () => context.read<HomeCubit>().refresh(),
                 style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                child: const Text('Try again'),
+                child: Text(l10n.tryAgain),
               ),
             ),
           ),

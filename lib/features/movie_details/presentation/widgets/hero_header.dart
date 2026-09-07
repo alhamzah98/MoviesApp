@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
+import 'package:movies_app/features/movie_details/services/trailer_launcher.dart';
 import 'package:movies_app/features/movies/domain/entities/movie.dart';
 
 class HeroHeader extends StatelessWidget {
@@ -8,12 +10,16 @@ class HeroHeader extends StatelessWidget {
     required this.movie,
     required this.onBack,
     this.bookmarkAction,
+    this.onWatchTrailer,
+    this.isTrailerLoading = false,
     super.key,
   });
 
   final Movie movie;
   final VoidCallback onBack;
   final Widget? bookmarkAction;
+  final VoidCallback? onWatchTrailer;
+  final bool isTrailerLoading;
 
   String _resolveHeroUrl() {
     final original = movie.backgroundImageOriginal?.trim();
@@ -33,6 +39,11 @@ class HeroHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final heroUrl = _resolveHeroUrl();
     final topPadding = MediaQuery.paddingOf(context).top;
+    final l10n = AppLocalizations.of(context);
+    final hasTrailer =
+        TrailerLauncher.hasValidTrailerCode(movie.youtubeTrailerCode);
+    final canPlayTrailer =
+        hasTrailer && !isTrailerLoading && onWatchTrailer != null;
 
     return Stack(
       children: [
@@ -94,20 +105,25 @@ class HeroHeader extends StatelessWidget {
             ),
           ),
         ),
-        const Positioned.fill(
+        Positioned.fill(
           child: Center(
-            child: _PlayIndicator(),
+            child: _PlayIndicator(
+              isEnabled: canPlayTrailer,
+              isLoading: isTrailerLoading,
+              tooltip: hasTrailer ? l10n.watchTrailer : l10n.trailerUnavailable,
+              onTap: canPlayTrailer ? onWatchTrailer : null,
+            ),
           ),
         ),
-        Positioned(
+        PositionedDirectional(
           top: topPadding + 8,
-          left: 16,
+          start: 16,
           child: _BackButton(onBack: onBack),
         ),
         if (bookmarkAction != null)
-          Positioned(
+          PositionedDirectional(
             top: topPadding + 8,
-            right: 16,
+            end: 16,
             child: bookmarkAction!,
           ),
       ],
@@ -122,6 +138,8 @@ class _BackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isArabic = AppLocalizations.of(context).isArabic;
+
     return InkWell(
       onTap: onBack,
       borderRadius: BorderRadius.circular(20),
@@ -135,10 +153,15 @@ class _BackButton extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.12),
           ),
         ),
-        child: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          color: AppColors.onBackground,
-          size: 18,
+        child: Center(
+          child: Transform.scale(
+            scaleX: isArabic ? -1.0 : 1.0,
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppColors.onBackground,
+              size: 18,
+            ),
+          ),
         ),
       ),
     );
@@ -146,29 +169,59 @@ class _BackButton extends StatelessWidget {
 }
 
 class _PlayIndicator extends StatelessWidget {
-  const _PlayIndicator();
+  const _PlayIndicator({
+    required this.isEnabled,
+    required this.isLoading,
+    required this.tooltip,
+    this.onTap,
+  });
+
+  final bool isEnabled;
+  final bool isLoading;
+  final String tooltip;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: isEnabled
+                ? AppColors.primary
+                : AppColors.primary.withValues(alpha: 0.4),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isEnabled ? 0.45 : 0.2),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: const Center(
-        child: Icon(
-          Icons.play_arrow_rounded,
-          color: AppColors.onPrimary,
-          size: 38,
+          child: Center(
+            child: isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: AppColors.onPrimary,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Icon(
+                    Icons.play_arrow_rounded,
+                    color: isEnabled
+                        ? AppColors.onPrimary
+                        : AppColors.onPrimary.withValues(alpha: 0.5),
+                    size: 38,
+                  ),
+          ),
         ),
       ),
     );

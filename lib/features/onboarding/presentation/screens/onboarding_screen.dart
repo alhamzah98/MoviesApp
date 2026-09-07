@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/storage/app_preferences.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/onboarding/presentation/models/onboarding_page_data.dart';
@@ -27,8 +28,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
   bool _isCompletingOnboarding = false;
 
-  static const _pages = OnboardingPageData.pages;
-
   @override
   void initState() {
     super.initState();
@@ -41,8 +40,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  Future<void> _goToNextPage() async {
-    if (_currentPage >= _pages.length - 1) {
+  Future<void> _goToNextPage(int pageCount) async {
+    if (_currentPage >= pageCount - 1) {
       await _completeOnboarding();
       return;
     }
@@ -85,12 +84,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return;
       }
 
+      final l10n = AppLocalizations.of(context);
       setState(() => _isCompletingOnboarding = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Could not save onboarding progress. Please try again.',
-          ),
+        SnackBar(
+          content: Text(l10n.onboardingSaveError),
         ),
       );
     }
@@ -98,16 +96,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final pages = OnboardingPageData.localizedPages(l10n);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: PageView.builder(
         controller: _pageController,
-        itemCount: _pages.length,
+        itemCount: pages.length,
         onPageChanged: (index) {
           setState(() => _currentPage = index);
         },
         itemBuilder: (context, index) {
-          final page = _pages[index];
+          final page = pages[index];
           return Stack(
             fit: StackFit.expand,
             children: [
@@ -116,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 page: page,
                 onPrimaryPressed: _isCompletingOnboarding
                     ? null
-                    : _goToNextPage,
+                    : () => _goToNextPage(pages.length),
                 onBackPressed: _goToPreviousPage,
               ),
             ],

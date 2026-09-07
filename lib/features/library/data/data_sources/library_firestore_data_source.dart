@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
@@ -19,6 +21,35 @@ class LibraryFirestoreDataSource implements LibraryRemoteDataSource {
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firebaseFirestore;
+
+  final Set<String> _suspendedUids = <String>{};
+  final Set<Completer<void>> _inFlightWrites = <Completer<void>>{};
+
+  /// Suspends library writes for [uid] during account cleanup operations.
+  void suspendWritesFor(String uid) {
+    _suspendedUids.add(uid);
+  }
+
+  /// Resumes library writes for [uid] if an operation cancelled before cleanup.
+  void resumeWritesFor(String uid) {
+    _suspendedUids.remove(uid);
+  }
+
+  /// Awaits all currently active library writes before destructive operations begin.
+  Future<void> awaitInFlightWrites({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    if (_inFlightWrites.isEmpty) {
+      return;
+    }
+    try {
+      await Future.wait(
+        _inFlightWrites.map((c) => c.future),
+      ).timeout(timeout, onTimeout: () => const []);
+    } catch (_) {
+      // Best-effort flush; timeout must not be interpreted as write cancellation.
+    }
+  }
 
   @override
   Stream<List<LibraryMovie>> observeWatchlist() {
@@ -165,6 +196,17 @@ class LibraryFirestoreDataSource implements LibraryRemoteDataSource {
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    final uid = _requireUid();
+    if (_suspendedUids.contains(uid)) {
+      throw const AppException(
+        'Account deletion in progress. Library modifications are suspended.',
+        code: 'operation-in-progress',
+      );
+    }
+
+    final completer = Completer<void>();
+    _inFlightWrites.add(completer);
+
     try {
       await action();
     } on AppException {
@@ -176,6 +218,11 @@ class LibraryFirestoreDataSource implements LibraryRemoteDataSource {
         error,
         fallbackMessage: 'Unable to update your library. Please try again.',
       );
+    } finally {
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+      _inFlightWrites.remove(completer);
     }
   }
 

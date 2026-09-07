@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 
 class ScreenshotsSection extends StatelessWidget {
@@ -14,15 +15,16 @@ class ScreenshotsSection extends StatelessWidget {
     }
 
     final displayedUrls = screenshotUrls.take(3).toList();
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Screen Shots',
-            style: TextStyle(
+          Text(
+            l10n.screenshots,
+            style: const TextStyle(
               color: AppColors.onBackground,
               fontSize: 18,
               fontWeight: FontWeight.bold,

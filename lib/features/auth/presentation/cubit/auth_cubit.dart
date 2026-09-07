@@ -43,6 +43,7 @@ class AuthCubit extends Cubit<AuthState> {
         status: AuthStatus.authenticated,
         user: user,
         clearErrorMessage: true,
+        clearErrorCode: true,
       ),
     );
   }
@@ -52,7 +53,13 @@ class AuthCubit extends Cubit<AuthState> {
       return;
     }
 
-    emit(state.copyWith(status: AuthStatus.checking, clearErrorMessage: true));
+    emit(
+      state.copyWith(
+        status: AuthStatus.checking,
+        clearErrorMessage: true,
+        clearErrorCode: true,
+      ),
+    );
 
     _authSubscription = _observeAuthState().listen(
       (user) {
@@ -68,6 +75,7 @@ class AuthCubit extends Cubit<AuthState> {
               status: AuthStatus.unauthenticated,
               clearUser: true,
               clearErrorMessage: true,
+              clearErrorCode: true,
             ),
           );
           return;
@@ -78,6 +86,7 @@ class AuthCubit extends Cubit<AuthState> {
             status: AuthStatus.authenticated,
             user: user,
             clearErrorMessage: true,
+            clearErrorCode: true,
           ),
         );
       },
@@ -89,6 +98,7 @@ class AuthCubit extends Cubit<AuthState> {
           state.copyWith(
             status: AuthStatus.failure,
             errorMessage: _messageFrom(error),
+            errorCode: _errorCodeFrom(error),
             clearUser: true,
           ),
         );
@@ -106,7 +116,11 @@ class AuthCubit extends Cubit<AuthState> {
 
     final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(status: AuthStatus.submitting, clearErrorMessage: true),
+      state.copyWith(
+        status: AuthStatus.submitting,
+        clearErrorMessage: true,
+        clearErrorCode: true,
+      ),
     );
 
     try {
@@ -119,6 +133,7 @@ class AuthCubit extends Cubit<AuthState> {
           status: AuthStatus.authenticated,
           user: user,
           clearErrorMessage: true,
+          clearErrorCode: true,
         ),
       );
     } catch (error) {
@@ -129,6 +144,7 @@ class AuthCubit extends Cubit<AuthState> {
         state.copyWith(
           status: AuthStatus.failure,
           errorMessage: _messageFrom(error),
+          errorCode: _errorCodeFrom(error),
         ),
       );
     }
@@ -149,7 +165,11 @@ class AuthCubit extends Cubit<AuthState> {
     final generation = ++_sessionGeneration;
     _isRegistering = true;
     emit(
-      state.copyWith(status: AuthStatus.submitting, clearErrorMessage: true),
+      state.copyWith(
+        status: AuthStatus.submitting,
+        clearErrorMessage: true,
+        clearErrorCode: true,
+      ),
     );
 
     try {
@@ -170,6 +190,7 @@ class AuthCubit extends Cubit<AuthState> {
           status: AuthStatus.authenticated,
           user: user,
           clearErrorMessage: true,
+          clearErrorCode: true,
         ),
       );
     } catch (error) {
@@ -181,6 +202,7 @@ class AuthCubit extends Cubit<AuthState> {
         state.copyWith(
           status: AuthStatus.failure,
           errorMessage: _messageFrom(error),
+          errorCode: _errorCodeFrom(error),
         ),
       );
     }
@@ -193,7 +215,11 @@ class AuthCubit extends Cubit<AuthState> {
 
     final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(status: AuthStatus.submitting, clearErrorMessage: true),
+      state.copyWith(
+        status: AuthStatus.submitting,
+        clearErrorMessage: true,
+        clearErrorCode: true,
+      ),
     );
 
     try {
@@ -209,6 +235,7 @@ class AuthCubit extends Cubit<AuthState> {
                 ? AuthStatus.unauthenticated
                 : AuthStatus.authenticated,
             clearErrorMessage: true,
+            clearErrorCode: true,
           ),
         );
         return;
@@ -219,6 +246,7 @@ class AuthCubit extends Cubit<AuthState> {
           status: AuthStatus.authenticated,
           user: user,
           clearErrorMessage: true,
+          clearErrorCode: true,
         ),
       );
     } catch (error) {
@@ -229,6 +257,7 @@ class AuthCubit extends Cubit<AuthState> {
         state.copyWith(
           status: AuthStatus.failure,
           errorMessage: _messageFrom(error),
+          errorCode: _errorCodeFrom(error),
         ),
       );
     }
@@ -241,7 +270,11 @@ class AuthCubit extends Cubit<AuthState> {
 
     final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(status: AuthStatus.submitting, clearErrorMessage: true),
+      state.copyWith(
+        status: AuthStatus.submitting,
+        clearErrorMessage: true,
+        clearErrorCode: true,
+      ),
     );
 
     try {
@@ -254,6 +287,7 @@ class AuthCubit extends Cubit<AuthState> {
           status: AuthStatus.unauthenticated,
           clearUser: true,
           clearErrorMessage: true,
+          clearErrorCode: true,
         ),
       );
     } catch (error) {
@@ -264,6 +298,7 @@ class AuthCubit extends Cubit<AuthState> {
         state.copyWith(
           status: AuthStatus.failure,
           errorMessage: _messageFrom(error),
+          errorCode: _errorCodeFrom(error),
         ),
       );
     }
@@ -274,6 +309,13 @@ class AuthCubit extends Cubit<AuthState> {
       return error.message;
     }
     return 'Authentication failed. Please try again.';
+  }
+
+  String? _errorCodeFrom(Object error) {
+    if (error is AppException) {
+      return error.code;
+    }
+    return null;
   }
 
   @override

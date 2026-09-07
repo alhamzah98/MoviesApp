@@ -5,9 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
 import 'package:movies_app/features/auth/data/auth_error_mapper.dart';
+import 'package:movies_app/features/auth/data/data_sources/account_deletion_orchestrator.dart';
 import 'package:movies_app/features/auth/data/data_sources/auth_remote_data_source.dart';
 import 'package:movies_app/features/auth/data/models/app_user_model.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
+import 'package:movies_app/features/auth/domain/entities/delete_account_result.dart';
 
 class _PendingRegistration {
   final Completer<AppUser?> completer = Completer<AppUser?>();
@@ -19,18 +21,89 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
     required FirebaseAuth firebaseAuth,
     required FirebaseFirestore firebaseFirestore,
     required GoogleSignIn googleSignIn,
+    Future<void> Function(String uid)? onPauseCompetingWrites,
+    void Function(String uid)? onResumeCompetingWrites,
+    AccountDeletionOrchestrator? deletionOrchestrator,
   }) : _firebaseAuth = firebaseAuth,
        _firebaseFirestore = firebaseFirestore,
-       _googleSignIn = googleSignIn;
+       _googleSignIn = googleSignIn,
+       _onPauseCompetingWrites = onPauseCompetingWrites,
+       _onResumeCompetingWrites = onResumeCompetingWrites {
+    _deletionOrchestrator = deletionOrchestrator ??
+        AccountDeletionOrchestrator(
+          getCurrentUid: () => _firebaseAuth.currentUser?.uid,
+          reauthenticate: ({String? password, bool useGoogle = false}) =>
+              _reauthenticateCurrentUser(
+                password: password,
+                useGoogle: useGoogle,
+              ),
+          deleteWatchlistBatch: ({
+            required int batchSize,
+            void Function()? onDestructiveSubmitting,
+          }) =>
+              _deleteCollectionBatch(
+                collection: _users
+                    .doc(_firebaseAuth.currentUser?.uid)
+                    .collection('watchlist'),
+                batchSize: batchSize,
+                onDestructiveSubmitting: onDestructiveSubmitting,
+              ),
+          deleteHistoryBatch: ({
+            required int batchSize,
+            void Function()? onDestructiveSubmitting,
+          }) =>
+              _deleteCollectionBatch(
+                collection: _users
+                    .doc(_firebaseAuth.currentUser?.uid)
+                    .collection('history'),
+                batchSize: batchSize,
+                onDestructiveSubmitting: onDestructiveSubmitting,
+              ),
+          deleteUserProfile: () async {
+            final uid = _firebaseAuth.currentUser?.uid;
+            if (uid != null) {
+              await _users.doc(uid).delete();
+            }
+          },
+          deleteAuthUser: () async {
+            final user = _firebaseAuth.currentUser;
+            if (user != null) {
+              await user.delete();
+            }
+          },
+          signOutGoogle: () async {
+            try {
+              await _ensureGoogleSignInInitialized();
+              await _googleSignIn.signOut();
+            } catch (_) {}
+          },
+          onPauseCompetingWrites: (uid) async {
+            if (_onPauseCompetingWrites != null) {
+              await _onPauseCompetingWrites!(uid);
+            }
+            await _awaitInFlightProfileWrites();
+          },
+          onResumeCompetingWrites: (uid) {
+            _onResumeCompetingWrites?.call(uid);
+          },
+        );
+  }
 
   static const String _usersCollection = 'users';
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firebaseFirestore;
   final GoogleSignIn _googleSignIn;
+  final Future<void> Function(String uid)? _onPauseCompetingWrites;
+  final void Function(String uid)? _onResumeCompetingWrites;
+  late final AccountDeletionOrchestrator _deletionOrchestrator;
 
   Future<void>? _googleInitializationFuture;
-  final List<_PendingRegistration> _activeRegistrations = <_PendingRegistration>[];
+  final List<_PendingRegistration> _activeRegistrations =
+      <_PendingRegistration>[];
+  final Set<Completer<void>> _inFlightProfileWrites = <Completer<void>>{};
+
+  bool _isSuspended(String uid) => _deletionOrchestrator.isUidSuspended(uid);
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firebaseFirestore.collection(_usersCollection);
@@ -41,12 +114,14 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
       if (user == null) {
         return null;
       }
-      // If registration coordination is in progress, await its atomic completion
-      // without polling loops. If registration fails/rolls back, do not create or return a profile.
-      final active = _activeRegistrations.cast<_PendingRegistration?>().firstWhere(
-        (reg) => reg != null && (reg.createdUid == user.uid || reg.createdUid == null),
-        orElse: () => null,
-      );
+      final active = _activeRegistrations
+          .cast<_PendingRegistration?>()
+          .firstWhere(
+            (reg) =>
+                reg != null &&
+                (reg.createdUid == user.uid || reg.createdUid == null),
+            orElse: () => null,
+          );
 
       if (active != null) {
         active.createdUid ??= user.uid;
@@ -111,26 +186,32 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
   }) async {
     final registration = _PendingRegistration();
     _activeRegistrations.add(registration);
-    User? createdUser;
+
     try {
       final credential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      createdUser = credential.user;
+
+      final createdUser = credential.user;
       if (createdUser == null) {
         throw const AppException(
           'Unable to create your account. Please try again.',
           code: 'unknown',
         );
       }
+
       registration.createdUid = createdUser.uid;
 
-      await createdUser.updateDisplayName(name);
+      try {
+        await createdUser.updateDisplayName(name);
+      } catch (_) {
+        // Fall back gracefully; Firestore document remains authoritative.
+      }
 
       final model = AppUserModel.fromAuthUser(
         uid: createdUser.uid,
-        email: email,
+        email: createdUser.email ?? email,
         name: name,
         phoneNumber: phoneNumber,
         avatarId: avatarId,
@@ -158,7 +239,8 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
       }
 
       final savedUser =
-          await _readUserProfile(createdUser.uid) ?? model.toEntity();
+          await _readUserProfile(createdUser.uid, authUser: createdUser) ??
+              model.toEntity();
       if (!registration.completer.isCompleted) {
         registration.completer.complete(savedUser);
       }
@@ -256,25 +338,21 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
 
   @override
   Future<void> signOut() async {
-    Object? primaryError;
-
-    try {
-      await _firebaseAuth.signOut();
-    } catch (error) {
-      primaryError = error;
-    }
-
     try {
       await _ensureGoogleSignInInitialized();
       await _googleSignIn.signOut();
     } catch (_) {
-      // Google sign-out should not mask Firebase sign-out failures.
+      // Ignored: Best effort Google sign out
     }
 
-    if (primaryError != null) {
+    try {
+      await _firebaseAuth.signOut();
+    } on FirebaseAuthException catch (error) {
+      throw AuthErrorMapper.fromCode(error.code, originalError: error);
+    } catch (error) {
       throw AuthErrorMapper.fromCode(
         null,
-        originalError: primaryError,
+        originalError: error,
         fallbackMessage: 'Unable to sign out. Please try again.',
       );
     }
@@ -289,10 +367,20 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
       throw const AppException(
-        'Please sign in again before updating your profile.',
-        code: 'requires-recent-login',
+        'Please sign in again to update your profile.',
+        code: 'unauthenticated',
       );
     }
+
+    if (_isSuspended(user.uid)) {
+      throw const AppException(
+        'Account deletion in progress. Profile modifications are suspended.',
+        code: 'operation-in-progress',
+      );
+    }
+
+    final completer = Completer<void>();
+    _inFlightProfileWrites.add(completer);
 
     try {
       await user.updateDisplayName(name);
@@ -306,7 +394,7 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      final profile = await _readUserProfile(user.uid);
+      final profile = await _readUserProfile(user.uid, authUser: user);
       if (profile == null) {
         throw const AppException(
           'Unable to update your profile. Please try again.',
@@ -323,47 +411,162 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
         error,
         fallbackMessage: 'Unable to update your profile. Please try again.',
       );
+    } finally {
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+      _inFlightProfileWrites.remove(completer);
     }
   }
 
   @override
-  Future<void> deleteAccount() async {
+  Future<DeleteAccountResult> deleteAccount({
+    String? password,
+    bool useGoogle = false,
+  }) {
+    return _deletionOrchestrator.execute(
+      password: password,
+      useGoogle: useGoogle,
+    );
+  }
+
+  Future<void> _reauthenticateCurrentUser({
+    String? password,
+    bool useGoogle = false,
+  }) async {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
       throw const AppException(
         'Please sign in again before deleting your account.',
-        code: 'requires-recent-login',
+        code: 'unauthenticated',
       );
     }
 
-    try {
-      await _users.doc(user.uid).delete();
-    } catch (error) {
-      throw _mapFirestoreError(
-        error,
-        fallbackMessage:
-            'Unable to delete your account data. Please try again.',
-      );
-    }
+    final providerIds = user.providerData
+        .map((info) => info.providerId)
+        .where((id) => id.isNotEmpty)
+        .toSet();
 
     try {
-      await user.delete();
+      if (useGoogle ||
+          (password == null &&
+              providerIds.contains('google.com') &&
+              !providerIds.contains('password'))) {
+        if (!providerIds.contains('google.com')) {
+          throw const AppException(
+            'This account was not created with Google.',
+            code: 'provider-not-supported',
+          );
+        }
+
+        await _ensureGoogleSignInInitialized();
+        final account = await _googleSignIn.authenticate();
+        final idToken = account.authentication.idToken;
+        if (idToken == null || idToken.isEmpty) {
+          throw const AppException(
+            'Google Sign-In did not return a valid credential.',
+            code: 'invalid-credential',
+          );
+        }
+
+        // Verify the selected Google account matches the currently logged in user
+        if (user.email != null &&
+            user.email!.isNotEmpty &&
+            account.email.trim().toLowerCase() !=
+                user.email!.trim().toLowerCase()) {
+          throw const AppException(
+            'The selected Google account does not match the active user session.',
+            code: 'user-mismatch',
+          );
+        }
+
+        final credential = GoogleAuthProvider.credential(idToken: idToken);
+        await user.reauthenticateWithCredential(credential);
+      } else if (password != null) {
+        if (!providerIds.contains('password')) {
+          throw const AppException(
+            'This account does not use password authentication.',
+            code: 'provider-not-supported',
+          );
+        }
+        if (user.email == null || user.email!.isEmpty) {
+          throw const AppException(
+            'Account email is required for password reauthentication.',
+            code: 'invalid-email',
+          );
+        }
+
+        // Pass password EXACTLY as entered - do not trim, lowercase, or alter.
+        final credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
+      } else {
+        if (providerIds.contains('password')) {
+          throw const AppException(
+            'Password is required to confirm account deletion.',
+            code: 'password-required',
+          );
+        }
+        throw const AppException(
+          'The sign-in method for this account is not supported for account deletion.',
+          code: 'provider-not-supported',
+        );
+      }
+    } on GoogleSignInException catch (error) {
+      if (error.code == GoogleSignInExceptionCode.canceled) {
+        throw const AppException(
+          'Google reauthentication cancelled.',
+          code: 'cancelled',
+        );
+      }
+      throw AuthErrorMapper.fromCode(
+        'google-config',
+        originalError: error,
+        fallbackMessage: 'Google reauthentication failed. Please try again.',
+      );
     } on FirebaseAuthException catch (error) {
       throw AuthErrorMapper.fromCode(error.code, originalError: error);
-    } catch (error) {
-      throw AuthErrorMapper.fromCode(
-        null,
-        originalError: error,
-        fallbackMessage: 'Unable to delete your account. Please try again.',
-      );
+    }
+  }
+
+  Future<int> _deleteCollectionBatch({
+    required CollectionReference<Map<String, dynamic>> collection,
+    required int batchSize,
+    void Function()? onDestructiveSubmitting,
+  }) async {
+    final snapshot = await collection
+        .limit(batchSize)
+        .get(const GetOptions(source: Source.server));
+
+    if (snapshot.docs.isEmpty) {
+      return 0;
     }
 
-    try {
-      await _ensureGoogleSignInInitialized();
-      await _googleSignIn.signOut();
-    } catch (_) {
-      // Best-effort Google cleanup after account deletion.
+    final batch = _firebaseFirestore.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
     }
+
+    // Mark destructive submission right before committing to the network.
+    onDestructiveSubmitting?.call();
+
+    await batch.commit();
+    return snapshot.docs.length;
+  }
+
+  Future<void> _awaitInFlightProfileWrites({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    if (_inFlightProfileWrites.isEmpty) {
+      return;
+    }
+    try {
+      await Future.wait(
+        _inFlightProfileWrites.map((c) => c.future),
+      ).timeout(timeout, onTimeout: () => const []);
+    } catch (_) {}
   }
 
   Future<void> _ensureGoogleSignInInitialized() {
@@ -374,7 +577,12 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
     User user, {
     required bool updateLastLogin,
   }) async {
-    final existing = await _readUserProfile(user.uid);
+    if (_isSuspended(user.uid)) {
+      final existing = await _readUserProfile(user.uid, authUser: user);
+      return existing ?? AppUserModel.fromFirebaseUser(user).toEntity();
+    }
+
+    final existing = await _readUserProfile(user.uid, authUser: user);
     if (existing != null) {
       if (updateLastLogin) {
         await _users.doc(user.uid).set({
@@ -382,7 +590,7 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
           'updatedAt': FieldValue.serverTimestamp(),
           'isEmailVerified': user.emailVerified,
         }, SetOptions(merge: true));
-        return await _readUserProfile(user.uid) ?? existing;
+        return await _readUserProfile(user.uid, authUser: user) ?? existing;
       }
       return existing;
     }
@@ -401,13 +609,18 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
           SetOptions(merge: true),
         );
 
-    return await _readUserProfile(user.uid) ?? model.toEntity();
+    return await _readUserProfile(user.uid, authUser: user) ?? model.toEntity();
   }
 
   Future<AppUser> _mergeGoogleProfile(
     User user,
     GoogleSignInAccount account,
   ) async {
+    if (_isSuspended(user.uid)) {
+      final existing = await _readUserProfile(user.uid, authUser: user);
+      return existing ?? AppUserModel.fromFirebaseUser(user).toEntity();
+    }
+
     final snapshot = await _users.doc(user.uid).get();
     final existingData = snapshot.data();
 
@@ -452,7 +665,7 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
     }
 
     await _users.doc(user.uid).set(payload, SetOptions(merge: true));
-    final profile = await _readUserProfile(user.uid);
+    final profile = await _readUserProfile(user.uid, authUser: user);
     if (profile == null) {
       throw const AppException(
         'Unable to complete Google sign-in. Please try again.',
@@ -462,7 +675,7 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
     return profile;
   }
 
-  Future<AppUser?> _readUserProfile(String uid) async {
+  Future<AppUser?> _readUserProfile(String uid, {User? authUser}) async {
     try {
       final snapshot = await _users.doc(uid).get();
       final data = snapshot.data();
@@ -470,10 +683,27 @@ class AuthFirebaseDataSource implements AuthRemoteDataSource {
         return null;
       }
       final model = AppUserModel.fromMap(data);
-      if (model.uid.isEmpty) {
-        return AppUserModel.fromMap({...data, 'uid': uid}).toEntity();
+      AppUser userEntity = model.uid.isEmpty
+          ? AppUserModel.fromMap({...data, 'uid': uid}).toEntity()
+          : model.toEntity();
+
+      // Authoritative provider identity sourced from Firebase Auth providerData.
+      final currentAuth = authUser ??
+          ((_firebaseAuth.currentUser?.uid == uid)
+              ? _firebaseAuth.currentUser
+              : null);
+
+      if (currentAuth != null) {
+        final authoritativeProviders = currentAuth.providerData
+            .map((info) => info.providerId)
+            .where((id) => id.isNotEmpty)
+            .toList(growable: false);
+        if (authoritativeProviders.isNotEmpty) {
+          userEntity = userEntity.copyWith(providerIds: authoritativeProviders);
+        }
       }
-      return model.toEntity();
+
+      return userEntity;
     } catch (error) {
       throw _mapFirestoreError(
         error,

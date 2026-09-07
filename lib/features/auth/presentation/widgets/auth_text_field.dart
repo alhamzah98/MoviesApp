@@ -10,6 +10,7 @@ class AuthTextField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction,
     this.inputFormatters,
+    this.textDirection,
     super.key,
   });
 
@@ -19,6 +20,7 @@ class AuthTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final List<TextInputFormatter>? inputFormatters;
+  final TextDirection? textDirection;
 
   static const double height = 56;
   static const double borderRadius = 15;
@@ -29,6 +31,7 @@ class AuthTextField extends StatelessWidget {
       height: height,
       child: TextField(
         controller: controller,
+        textDirection: textDirection,
         keyboardType: keyboardType,
         textInputAction: textInputAction,
         inputFormatters: inputFormatters,

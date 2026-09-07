@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/movies/domain/entities/movie.dart';
 
@@ -17,6 +18,7 @@ class StatisticsRow extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final l10n = AppLocalizations.of(context);
     final ratingString = movie.rating == movie.rating.roundToDouble()
         ? movie.rating.toStringAsFixed(0)
         : movie.rating.toStringAsFixed(1);
@@ -39,7 +41,7 @@ class StatisticsRow extends StatelessWidget {
             Expanded(
               child: _StatCard(
                 icon: Icons.access_time_filled_rounded,
-                label: '${movie.runtime} min',
+                label: '${movie.runtime} ${l10n.minutesShort}',
               ),
             ),
           if (hasRuntime && hasRating)

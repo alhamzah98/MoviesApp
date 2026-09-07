@@ -15,11 +15,13 @@ class AuthState extends Equatable {
     this.status = AuthStatus.initial,
     this.user,
     this.errorMessage,
+    this.errorCode,
   });
 
   final AuthStatus status;
   final AppUser? user;
   final String? errorMessage;
+  final String? errorCode;
 
   bool get isSubmitting => status == AuthStatus.submitting;
 
@@ -27,8 +29,10 @@ class AuthState extends Equatable {
     AuthStatus? status,
     AppUser? user,
     String? errorMessage,
+    String? errorCode,
     bool clearUser = false,
     bool clearErrorMessage = false,
+    bool clearErrorCode = false,
   }) {
     return AuthState(
       status: status ?? this.status,
@@ -36,9 +40,12 @@ class AuthState extends Equatable {
       errorMessage: clearErrorMessage
           ? null
           : (errorMessage ?? this.errorMessage),
+      errorCode: clearErrorCode
+          ? null
+          : (errorCode ?? this.errorCode),
     );
   }
 
   @override
-  List<Object?> get props => [status, user, errorMessage];
+  List<Object?> get props => [status, user, errorMessage, errorCode];
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/onboarding/presentation/models/onboarding_page_data.dart';
 import 'package:movies_app/shared/widgets/movies_outlined_button.dart';
@@ -121,7 +122,10 @@ class _OnboardingCopyAndActions extends StatelessWidget {
         ),
         if (page.showBackButton) ...[
           const SizedBox(height: 16),
-          MoviesOutlinedButton(label: 'Back', onPressed: onBackPressed),
+          MoviesOutlinedButton(
+            label: AppLocalizations.of(context).onboardingBack,
+            onPressed: onBackPressed,
+          ),
         ],
       ],
     );

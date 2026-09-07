@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 
 class MoviesBottomNavigationBar extends StatelessWidget {
@@ -23,6 +24,7 @@ class MoviesBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final safeIndex = currentIndex.clamp(0, tabCount - 1);
+    final l10n = AppLocalizations.of(context);
 
     return SafeArea(
       top: false,
@@ -48,24 +50,28 @@ class MoviesBottomNavigationBar extends StatelessWidget {
               _NavItem(
                 key: const Key('home_tab'),
                 icon: Icons.home_rounded,
+                label: l10n.homeTab,
                 selected: safeIndex == 0,
                 onTap: () => onChanged(0),
               ),
               _NavItem(
                 key: const Key('search_tab'),
                 icon: Icons.search_rounded,
+                label: l10n.searchTab,
                 selected: safeIndex == 1,
                 onTap: () => onChanged(1),
               ),
               _NavItem(
                 key: const Key('browse_tab'),
                 icon: Icons.explore_outlined,
+                label: l10n.browseTab,
                 selected: safeIndex == 2,
                 onTap: () => onChanged(2),
               ),
               _NavItem(
                 key: const Key('profile_tab'),
                 icon: Icons.person_outline_rounded,
+                label: l10n.profileTab,
                 selected: safeIndex == 3,
                 onTap: () => onChanged(3),
               ),
@@ -80,12 +86,14 @@ class MoviesBottomNavigationBar extends StatelessWidget {
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.icon,
+    required this.label,
     required this.selected,
     required this.onTap,
     super.key,
   });
 
   final IconData icon;
+  final String label;
   final bool selected;
   final VoidCallback onTap;
 
@@ -93,7 +101,7 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onTap,
-      tooltip: '',
+      tooltip: label,
       splashRadius: 24,
       icon: Icon(
         icon,

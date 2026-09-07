@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:movies_app/core/auth/auth_coordinator.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/library/domain/entities/library_movie.dart';
 import 'package:movies_app/features/library/presentation/cubit/history_cubit.dart';
@@ -15,6 +16,7 @@ import 'package:movies_app/features/movie_details/presentation/widgets/similar_m
 import 'package:movies_app/features/movie_details/presentation/widgets/statistics_row.dart';
 import 'package:movies_app/features/movie_details/presentation/widgets/summary_section.dart';
 import 'package:movies_app/features/movie_details/presentation/widgets/watch_button.dart';
+import 'package:movies_app/features/movie_details/services/trailer_launcher.dart';
 import 'package:movies_app/features/movies/domain/entities/movie.dart';
 import 'package:movies_app/features/movies/domain/use_cases/get_movie_details.dart';
 import 'package:movies_app/features/movies/domain/use_cases/get_movie_suggestions.dart';
@@ -29,6 +31,7 @@ class MovieDetailsScreen extends StatefulWidget {
     this.watchlistCubit,
     this.historyCubit,
     this.coordinator,
+    this.urlLauncher,
     super.key,
   });
 
@@ -38,6 +41,7 @@ class MovieDetailsScreen extends StatefulWidget {
   final WatchlistCubit? watchlistCubit;
   final HistoryCubit? historyCubit;
   final AuthCoordinator? coordinator;
+  final UrlLauncherCallback? urlLauncher;
 
   @override
   State<MovieDetailsScreen> createState() => _MovieDetailsScreenState();
@@ -46,6 +50,8 @@ class MovieDetailsScreen extends StatefulWidget {
 class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   MovieDetailsCubit? _cubit;
   int? _recordedHistoryMovieId;
+  late final TrailerLauncher _trailerLauncher;
+  bool _isTrailerLaunching = false;
 
   WatchlistCubit? get _effectiveWatchlistCubit =>
       widget.watchlistCubit ?? widget.coordinator?.watchlistCubit;
@@ -56,6 +62,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    _trailerLauncher = TrailerLauncher(launcher: widget.urlLauncher);
     if (_isValidMovieId) {
       _cubit = MovieDetailsCubit(
         getMovieDetails: widget.getMovieDetails,
@@ -113,10 +120,58 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     }
   }
 
+  Future<void> _handleWatchTrailer(Movie movie) async {
+    if (_isTrailerLaunching) {
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context);
+    final hasTrailer =
+        TrailerLauncher.hasValidTrailerCode(movie.youtubeTrailerCode);
+    if (!hasTrailer) {
+      _showFeedback(l10n.trailerUnavailable);
+      return;
+    }
+
+    setState(() => _isTrailerLaunching = true);
+
+    try {
+      final success =
+          await _trailerLauncher.launchTrailer(movie.youtubeTrailerCode);
+      if (!mounted) return;
+
+      if (!success) {
+        _showFeedback(l10n.trailerLaunchFailed);
+      }
+    } catch (_) {
+      if (mounted) {
+        _showFeedback(l10n.trailerLaunchFailed);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isTrailerLaunching = false);
+      }
+    }
+  }
+
+  void _showFeedback(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.inputFill,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     if (!_isValidMovieId) {
-      return _buildInvalidIdScaffold();
+      return _buildInvalidIdScaffold(l10n);
     }
 
     final watchlistCubit = _effectiveWatchlistCubit;
@@ -139,7 +194,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
           if (state.status == MovieDetailsStatus.failure &&
               state.movie == null) {
             return _buildFailureView(
-              state.errorMessage ?? 'Failed to load movie details.',
+              state.errorMessage ?? l10n.failedToLoadDetails,
+              l10n,
             );
           }
 
@@ -158,14 +214,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         listener: (context, watchlistState) {
           if (watchlistState.status == WatchlistStatus.failure &&
               watchlistState.errorMessage != null) {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(watchlistState.errorMessage!),
-                backgroundColor: AppColors.inputFill,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            _showFeedback(watchlistState.errorMessage!);
           }
         },
         child: content,
@@ -178,7 +227,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     );
   }
 
-  Widget _buildInvalidIdScaffold() {
+  Widget _buildInvalidIdScaffold(AppLocalizations l10n) {
+    final isArabic = l10n.isArabic;
+
     return Scaffold(
       key: const Key('movie_details_invalid_screen'),
       backgroundColor: AppColors.background,
@@ -186,39 +237,42 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: AppColors.onBackground,
+          icon: Transform.scale(
+            scaleX: isArabic ? -1.0 : 1.0,
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppColors.onBackground,
+            ),
           ),
           onPressed: _handleBack,
         ),
       ),
-      body: const Center(
+      body: Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 Icons.error_outline_rounded,
                 size: 56,
                 color: AppColors.error,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
-                'Invalid movie ID',
+                l10n.invalidMovieIdTitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.onBackground,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
-                'The selected movie could not be identified.',
+                l10n.invalidMovieIdMessage,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.onBackgroundSecondary,
                   fontSize: 14,
                 ),
@@ -232,15 +286,16 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
 
   Widget _buildLoadingView() {
     final topPadding = MediaQuery.paddingOf(context).top;
+    final isArabic = AppLocalizations.of(context).isArabic;
 
     return Stack(
       children: [
         const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
-        Positioned(
+        PositionedDirectional(
           top: topPadding + 8,
-          left: 16,
+          start: 16,
           child: InkWell(
             onTap: _handleBack,
             borderRadius: BorderRadius.circular(20),
@@ -254,10 +309,15 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   color: Colors.white.withValues(alpha: 0.12),
                 ),
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.onBackground,
-                size: 18,
+              child: Center(
+                child: Transform.scale(
+                  scaleX: isArabic ? -1.0 : 1.0,
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: AppColors.onBackground,
+                    size: 18,
+                  ),
+                ),
               ),
             ),
           ),
@@ -266,8 +326,9 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
     );
   }
 
-  Widget _buildFailureView(String errorMessage) {
+  Widget _buildFailureView(String errorMessage, AppLocalizations l10n) {
     final topPadding = MediaQuery.paddingOf(context).top;
+    final isArabic = l10n.isArabic;
 
     return Stack(
       children: [
@@ -306,18 +367,18 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                       vertical: 12,
                     ),
                   ),
-                  child: const Text(
-                    'Try again',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  child: Text(
+                    l10n.tryAgain,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
           ),
         ),
-        Positioned(
+        PositionedDirectional(
           top: topPadding + 8,
-          left: 16,
+          start: 16,
           child: InkWell(
             onTap: _handleBack,
             borderRadius: BorderRadius.circular(20),
@@ -331,10 +392,15 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
                   color: Colors.white.withValues(alpha: 0.12),
                 ),
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: AppColors.onBackground,
-                size: 18,
+              child: Center(
+                child: Transform.scale(
+                  scaleX: isArabic ? -1.0 : 1.0,
+                  child: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: AppColors.onBackground,
+                    size: 18,
+                  ),
+                ),
               ),
             ),
           ),
@@ -360,6 +426,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
             movie: movie,
             onBack: _handleBack,
             bookmarkAction: _buildBookmarkButton(context, movie),
+            onWatchTrailer: () => _handleWatchTrailer(movie),
+            isTrailerLoading: _isTrailerLaunching,
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -368,7 +436,11 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
         SliverToBoxAdapter(
-          child: WatchButton(movie: movie),
+          child: WatchButton(
+            movie: movie,
+            onWatchTrailer: () => _handleWatchTrailer(movie),
+            isLoading: _isTrailerLaunching,
+          ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 20)),
         SliverToBoxAdapter(
@@ -421,6 +493,8 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
       return const SizedBox.shrink();
     }
 
+    final l10n = AppLocalizations.of(context);
+
     return BlocBuilder<WatchlistCubit, WatchlistState>(
       bloc: watchlistCubit,
       builder: (context, watchlistState) {
@@ -433,10 +507,12 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
         final isEnabled = _isValidMovieId && !isPending && isReady;
 
         final tooltip = !isAuthenticated
-            ? 'Sign in to save to Watch List'
+            ? l10n.signInToSaveTooltip
             : (!isReady
-                ? 'Checking Watch List status...'
-                : (isSaved ? 'Remove from Watch List' : 'Save to Watch List'));
+                ? l10n.checkingWatchListStatus
+                : (isSaved
+                    ? l10n.removeFromWatchList
+                    : l10n.saveToWatchList));
 
         return Tooltip(
           message: tooltip,
@@ -444,16 +520,7 @@ class _MovieDetailsScreenState extends State<MovieDetailsScreen> {
             onTap: isEnabled
                 ? () {
                     if (!isAuthenticated) {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Please sign in to save movies to your watch list.',
-                          ),
-                          backgroundColor: AppColors.inputFill,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                      _showFeedback(l10n.signInToBookmark);
                       return;
                     }
                     watchlistCubit.toggleMovie(LibraryMovie.fromMovie(movie));

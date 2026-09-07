@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
+import 'package:movies_app/features/auth/domain/entities/delete_account_result.dart';
 import 'package:movies_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:movies_app/features/library/domain/entities/library_movie.dart';
 import 'package:movies_app/features/library/domain/repositories/library_repository.dart';
@@ -49,7 +50,11 @@ class _FakeAuthRepo implements AuthRepository {
     required String avatarId,
   }) async => throw UnimplementedError();
   @override
-  Future<void> deleteAccount() async {}
+  Future<DeleteAccountResult> deleteAccount({
+    String? password,
+    bool useGoogle = false,
+  }) async =>
+      DeleteAccountResult.success;
 }
 
 class _FakeLibraryRepo implements LibraryRepository {

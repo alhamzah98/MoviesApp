@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/home/presentation/widgets/home_movie_card.dart';
 import 'package:movies_app/features/home/presentation/widgets/home_section_error.dart';
@@ -32,14 +33,16 @@ class SimilarMoviesSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final l10n = AppLocalizations.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
-            'Similar',
-            style: TextStyle(
+            l10n.similarMovies,
+            style: const TextStyle(
               color: AppColors.onBackground,
               fontSize: 18,
               fontWeight: FontWeight.bold,

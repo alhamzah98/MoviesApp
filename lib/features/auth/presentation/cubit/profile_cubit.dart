@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
+import 'package:movies_app/features/auth/domain/entities/delete_account_result.dart';
 import 'package:movies_app/features/auth/domain/use_cases/delete_account.dart';
 import 'package:movies_app/features/auth/domain/use_cases/get_current_user.dart';
 import 'package:movies_app/features/auth/domain/use_cases/update_profile.dart';
@@ -129,38 +130,89 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
-  Future<void> deleteAccount() async {
+  Future<DeleteAccountResult> deleteAccount({
+    String? password,
+    bool useGoogle = false,
+  }) async {
     if (state.isSubmitting) {
-      return;
+      return DeleteAccountResult.failedPreCleanup(
+        errorMessage: 'An operation is already in progress.',
+      );
     }
 
     final generation = ++_sessionGeneration;
     emit(
-      state.copyWith(status: ProfileStatus.submitting, clearErrorMessage: true),
+      state.copyWith(
+        status: ProfileStatus.submitting,
+        clearErrorMessage: true,
+        clearDeleteResult: true,
+      ),
     );
 
     try {
-      await _deleteAccount();
-      if (isClosed || generation != _sessionGeneration) {
-        return;
-      }
-      emit(
-        state.copyWith(
-          status: ProfileStatus.deleted,
-          clearUser: true,
-          clearErrorMessage: true,
-        ),
+      final result = await _deleteAccount(
+        password: password,
+        useGoogle: useGoogle,
       );
+
+      if (isClosed || generation != _sessionGeneration) {
+        return result;
+      }
+
+      if (result.isSuccess) {
+        emit(
+          state.copyWith(
+            status: ProfileStatus.deleted,
+            clearUser: true,
+            clearErrorMessage: true,
+            lastDeleteResult: result,
+          ),
+        );
+      } else if (result.isCancelled) {
+        emit(
+          state.copyWith(
+            status: ProfileStatus.ready,
+            clearErrorMessage: true,
+            lastDeleteResult: result,
+          ),
+        );
+      } else if (result.isPartialFailure) {
+        emit(
+          state.copyWith(
+            status: ProfileStatus.partialFailure,
+            errorMessage: result.errorMessage,
+            lastDeleteResult: result,
+          ),
+        );
+      } else {
+        emit(
+          state.copyWith(
+            status: ProfileStatus.failure,
+            errorMessage:
+                result.errorMessage ?? 'Unable to delete your account.',
+            lastDeleteResult: result,
+          ),
+        );
+      }
+
+      return result;
     } catch (error) {
       if (isClosed || generation != _sessionGeneration) {
-        return;
+        return DeleteAccountResult.failedPreCleanup(
+          errorMessage: _messageFrom(error),
+        );
       }
+      final failureResult = DeleteAccountResult.failedPreCleanup(
+        errorMessage: _messageFrom(error),
+      );
       emit(
         state.copyWith(
           status: ProfileStatus.failure,
-          errorMessage: _messageFrom(error),
+          errorMessage: failureResult.errorMessage,
+          lastDeleteResult: failureResult,
         ),
       );
+      return failureResult;
     }
   }
 

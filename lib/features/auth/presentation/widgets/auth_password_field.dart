@@ -7,12 +7,14 @@ class AuthPasswordField extends StatefulWidget {
     required this.controller,
     required this.hintText,
     this.textInputAction,
+    this.textDirection,
     super.key,
   });
 
   final TextEditingController controller;
   final String hintText;
   final TextInputAction? textInputAction;
+  final TextDirection? textDirection;
 
   @override
   State<AuthPasswordField> createState() => _AuthPasswordFieldState();
@@ -29,6 +31,7 @@ class _AuthPasswordFieldState extends State<AuthPasswordField> {
         controller: widget.controller,
         obscureText: _obscureText,
         textInputAction: widget.textInputAction,
+        textDirection: widget.textDirection,
         style: const TextStyle(
           color: AppColors.onBackground,
           fontSize: 15,

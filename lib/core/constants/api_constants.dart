@@ -1,7 +1,7 @@
 class ApiConstants {
   ApiConstants._();
 
-  static const String baseUrl = 'https://yts.mx/api/v2/';
+  static const String baseUrl = 'https://yts.gg/api/v2/';
 
   static const String listMoviesEndpoint = 'list_movies.json';
   static const String movieDetailsEndpoint = 'movie_details.json';

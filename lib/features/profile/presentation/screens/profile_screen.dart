@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
+import 'package:movies_app/core/localization/locale_cubit.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/auth/domain/entities/app_user.dart';
 import 'package:movies_app/features/home/presentation/widgets/home_movie_card.dart';
@@ -57,11 +59,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (widget.onLogout != null) {
       _showLogoutConfirmationDialog();
     } else {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Authentication integration will be enabled in the upcoming phase.',
+            l10n.authServiceUnavailable,
           ),
           backgroundColor: AppColors.inputFill,
           behavior: SnackBarBehavior.floating,
@@ -71,6 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showLogoutConfirmationDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -79,16 +83,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          title: const Text(
-            'Logout',
-            style: TextStyle(
+          title: Text(
+            l10n.logoutConfirmTitle,
+            style: const TextStyle(
               color: AppColors.onBackground,
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: const Text(
-            'Are you sure you want to log out of your account?',
-            style: TextStyle(
+          content: Text(
+            l10n.logoutConfirmMessage,
+            style: const TextStyle(
               color: AppColors.onBackgroundSecondary,
               fontSize: 14,
               height: 1.4,
@@ -97,9 +101,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: AppColors.onBackgroundSecondary),
+              child: Text(
+                l10n.cancel,
+                style: const TextStyle(color: AppColors.onBackgroundSecondary),
               ),
             ),
             TextButton(
@@ -107,9 +111,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Navigator.of(dialogContext).pop();
                 widget.onLogout!();
               },
-              child: const Text(
-                'Logout',
-                style: TextStyle(
+              child: Text(
+                l10n.logout,
+                style: const TextStyle(
                   color: AppColors.error,
                   fontWeight: FontWeight.bold,
                 ),
@@ -223,12 +227,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
                 child: _ProfileHeader(
                   user: widget.user,
                   onEditProfile: _handleEditProfile,
                   onLogout: _handleLogout,
                 ),
+              ),
+            ),
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: _ProfileLanguageSelector(),
               ),
             ),
             SliverToBoxAdapter(
@@ -268,6 +278,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     WatchlistState? watchlistState,
     HistoryState? historyState,
   }) {
+    final l10n = AppLocalizations.of(context);
+
     if (widget.isLoading) {
       return SliverToBoxAdapter(
         child: Padding(
@@ -336,8 +348,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  watchlistState.errorMessage ??
-                      'Unable to load your watch list.',
+                  watchlistState.errorMessage ?? l10n.unableToLoadWatchList,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: AppColors.onBackground,
@@ -354,7 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Try Again'),
+                  child: Text(l10n.tryAgain),
                 ),
               ],
             ),
@@ -367,9 +378,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(16, 36, 16, bottomNavReserve),
-            child: const _EmptyListView(
-              title: 'Your Watch List is Empty',
-              subtitle: 'Movies you add to your watch list will appear here.',
+            child: _EmptyListView(
+              title: l10n.emptyWatchListTitle,
+              subtitle: l10n.emptyWatchListSubtitle,
               icon: Icons.bookmark_border_rounded,
             ),
           ),
@@ -414,8 +425,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  historyState.errorMessage ??
-                      'Unable to load your watch history.',
+                  historyState.errorMessage ?? l10n.unableToLoadHistory,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: AppColors.onBackground,
@@ -432,7 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Try Again'),
+                  child: Text(l10n.tryAgain),
                 ),
               ],
             ),
@@ -445,9 +455,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(16, 36, 16, bottomNavReserve),
-            child: const _EmptyListView(
-              title: 'No History Recorded',
-              subtitle: 'Movies you have viewed will appear here.',
+            child: _EmptyListView(
+              title: l10n.emptyHistoryTitle,
+              subtitle: l10n.emptyHistorySubtitle,
               icon: Icons.history_rounded,
             ),
           ),
@@ -471,18 +481,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final isSignedIn = widget.user != null;
       final subtitle = isWatchlist
           ? (isSignedIn
-              ? 'Watch list sync is currently unavailable and will be integrated in an upcoming phase.'
-              : 'Sign in to sync and view your saved watch list.')
+              ? l10n.watchListUnavailableSubtitleSignedIn
+              : l10n.watchListUnavailableSubtitleGuest)
           : (isSignedIn
-              ? 'Watch history tracking is currently unavailable and will be integrated in an upcoming phase.'
-              : 'Sign in to track and view your watch history.');
+              ? l10n.historyUnavailableSubtitleSignedIn
+              : l10n.historyUnavailableSubtitleGuest);
 
       return SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.fromLTRB(16, 36, 16, bottomNavReserve),
           child: _UnavailableView(
-            title:
-                isWatchlist ? 'Watch List Unavailable' : 'History Unavailable',
+            title: isWatchlist
+                ? l10n.watchListUnavailableTitle
+                : l10n.historyUnavailableTitle,
             subtitle: subtitle,
           ),
         ),
@@ -495,11 +506,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: EdgeInsets.fromLTRB(16, 36, 16, bottomNavReserve),
           child: _EmptyListView(
             title: isWatchlist
-                ? 'Your Watch List is Empty'
-                : 'No History Recorded',
+                ? l10n.emptyWatchListTitle
+                : l10n.emptyHistoryTitle,
             subtitle: isWatchlist
-                ? 'Movies you add to your watch list will appear here.'
-                : 'Movies you have watched will appear here.',
+                ? l10n.emptyWatchListSubtitle
+                : l10n.emptyHistorySubtitle,
             icon: isWatchlist
                 ? Icons.bookmark_border_rounded
                 : Icons.history_rounded,
@@ -553,7 +564,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     top: 8,
                     right: 8,
                     child: Tooltip(
-                      message: 'Remove from Watch List',
+                      message: AppLocalizations.of(context).removeFromWatchList,
                       child: InkWell(
                         onTap: isPending
                             ? null
@@ -613,11 +624,12 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final avatarPath = ProfileAvatars.assetPathFor(user?.avatarId);
     final displayName = user?.name?.trim().isNotEmpty == true
         ? user!.name!.trim()
-        : (user != null ? 'User' : 'Guest User');
-    final email = user?.email.trim() ?? 'Not signed in';
+        : (user != null ? l10n.userDefault : l10n.guestUser);
+    final email = user?.email.trim() ?? l10n.notSignedIn;
 
     return Row(
       children: [
@@ -636,7 +648,9 @@ class _ProfileHeader extends StatelessWidget {
               Text(
                 displayName,
                 maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                overflow: TextDirection.ltr == Directionality.of(context)
+                    ? TextOverflow.ellipsis
+                    : TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: AppColors.onBackground,
                   fontSize: 20,
@@ -661,9 +675,9 @@ class _ProfileHeader extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: onEditProfile,
                       icon: const Icon(Icons.edit_rounded, size: 16),
-                      label: const Text(
-                        'Edit Profile',
-                        style: TextStyle(
+                      label: Text(
+                        l10n.editProfile,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -689,9 +703,9 @@ class _ProfileHeader extends StatelessWidget {
                         size: 16,
                         color: AppColors.error,
                       ),
-                      label: const Text(
-                        'Logout',
-                        style: TextStyle(
+                      label: Text(
+                        l10n.logout,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: AppColors.error,
@@ -727,6 +741,7 @@ class _StatsSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final watchlistLabel =
         watchlistCount != null ? watchlistCount.toString() : '-';
     final historyLabel =
@@ -738,7 +753,7 @@ class _StatsSummaryRow extends StatelessWidget {
           child: _StatTile(
             icon: Icons.bookmark_rounded,
             count: watchlistLabel,
-            title: 'Watch List',
+            title: l10n.watchList,
           ),
         ),
         const SizedBox(width: 12),
@@ -746,7 +761,7 @@ class _StatsSummaryRow extends StatelessWidget {
           child: _StatTile(
             icon: Icons.history_rounded,
             count: historyLabel,
-            title: 'History',
+            title: l10n.history,
           ),
         ),
       ],
@@ -822,6 +837,8 @@ class _ProfileTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       height: 48,
       padding: const EdgeInsets.all(4),
@@ -833,7 +850,7 @@ class _ProfileTabBar extends StatelessWidget {
         children: [
           Expanded(
             child: _TabButton(
-              title: 'Watch List',
+              title: l10n.watchList,
               icon: Icons.bookmark_outline_rounded,
               isSelected: selectedIndex == 0,
               onTap: () => onTabChanged(0),
@@ -841,7 +858,7 @@ class _ProfileTabBar extends StatelessWidget {
           ),
           Expanded(
             child: _TabButton(
-              title: 'History',
+              title: l10n.history,
               icon: Icons.history_rounded,
               isSelected: selectedIndex == 1,
               onTap: () => onTabChanged(1),
@@ -989,6 +1006,141 @@ class _EmptyListView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProfileLanguageSelector extends StatelessWidget {
+  const _ProfileLanguageSelector();
+
+  Future<void> _changeLanguage(BuildContext context, String code) async {
+    final cubit = context.read<LocaleCubit?>() ??
+        (context.findAncestorStateOfType<State>()?.context.read<LocaleCubit?>());
+    if (cubit == null) return;
+
+    final success = await cubit.setLocale(code);
+    if (!success && context.mounted) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.languageSaveFailed),
+          backgroundColor: AppColors.inputFill,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    Locale activeLocale = const Locale('en');
+    try {
+      final cubit = context.watch<LocaleCubit?>();
+      if (cubit != null) {
+        activeLocale = cubit.state;
+      }
+    } catch (_) {}
+
+    final isArabic = activeLocale.languageCode == 'ar';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.inputFill,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.06),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.language_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.language,
+              style: const TextStyle(
+                color: AppColors.onBackground,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Container(
+            height: 32,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _LanguagePill(
+                  label: 'EN',
+                  isSelected: !isArabic,
+                  onTap: () => _changeLanguage(context, 'en'),
+                ),
+                _LanguagePill(
+                  label: 'عربي',
+                  isSelected: isArabic,
+                  onTap: () => _changeLanguage(context, 'ar'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LanguagePill extends StatelessWidget {
+  const _LanguagePill({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected
+                ? AppColors.onPrimary
+                : AppColors.onBackgroundSecondary,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 }

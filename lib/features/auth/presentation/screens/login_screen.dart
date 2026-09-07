@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:movies_app/core/auth/auth_coordinator.dart';
 import 'package:movies_app/core/constants/route_constants.dart';
 import 'package:movies_app/core/errors/app_exception.dart';
+import 'package:movies_app/core/localization/app_localizations.dart';
 import 'package:movies_app/core/theme/app_colors.dart';
 import 'package:movies_app/features/auth/domain/auth_validators.dart';
 import 'package:movies_app/features/auth/presentation/cubit/auth_state.dart';
@@ -50,11 +51,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    final l10n = AppLocalizations.of(context);
     final coordinator = widget.coordinator;
     if (coordinator != null && coordinator.isConfigurationUnavailable) {
       _showMessage(
-        coordinator.bootstrapErrorMessage ??
-            'Firebase configuration is absent. Please configure google-services.json.',
+        coordinator.bootstrapErrorMessage ?? l10n.firebaseConfigMissing,
       );
       return;
     }
@@ -66,13 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
       AuthValidators.validateEmail(email);
       AuthValidators.validatePassword(password);
     } on AppException catch (e) {
-      _showMessage(e.message);
+      _showMessage(l10n.translateError(errorCode: e.code, fallback: e.message));
       return;
     }
 
     final authCubit = coordinator?.authCubit;
     if (authCubit == null) {
-      _showMessage('Authentication service is currently unavailable.');
+      _showMessage(l10n.authServiceUnavailable);
       return;
     }
 
@@ -88,13 +89,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (authCubit.state.status == AuthStatus.failure) {
         _showMessage(
-          authCubit.state.errorMessage ??
-              'Authentication failed. Please try again.',
+          l10n.translateError(
+            errorCode: authCubit.state.errorCode,
+            fallback: authCubit.state.errorMessage ?? l10n.authFailed,
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
-        _showMessage('Authentication failed. Please try again.');
+        _showMessage(l10n.authFailed);
       }
     } finally {
       if (mounted) {
@@ -108,18 +111,18 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    final l10n = AppLocalizations.of(context);
     final coordinator = widget.coordinator;
     if (coordinator != null && coordinator.isConfigurationUnavailable) {
       _showMessage(
-        coordinator.bootstrapErrorMessage ??
-            'Firebase configuration is absent. Please configure google-services.json.',
+        coordinator.bootstrapErrorMessage ?? l10n.firebaseConfigMissing,
       );
       return;
     }
 
     final authCubit = coordinator?.authCubit;
     if (authCubit == null) {
-      _showMessage('Authentication service is currently unavailable.');
+      _showMessage(l10n.authServiceUnavailable);
       return;
     }
 
@@ -132,13 +135,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (authCubit.state.status == AuthStatus.failure) {
         _showMessage(
-          authCubit.state.errorMessage ??
-              'Google sign-in failed. Please try again.',
+          l10n.translateError(
+            errorCode: authCubit.state.errorCode,
+            fallback: authCubit.state.errorMessage ?? l10n.authFailed,
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
-        _showMessage('Google sign-in failed. Please try again.');
+        _showMessage(l10n.authFailed);
       }
     } finally {
       if (mounted) {
@@ -149,6 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final isConfigUnavailable =
         widget.coordinator?.isConfigurationUnavailable ?? false;
@@ -195,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Expanded(
                               child: Text(
                                 widget.coordinator?.bootstrapErrorMessage ??
-                                    'Firebase configuration is absent. Please configure google-services.json.',
+                                    l10n.firebaseConfigMissing,
                                 style: const TextStyle(
                                   color: AppColors.onBackground,
                                   fontSize: 12,
@@ -210,20 +216,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 48),
                     AuthTextField(
                       controller: _emailController,
-                      hintText: 'Email',
+                      hintText: l10n.email,
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
+                      textDirection: TextDirection.ltr,
                     ),
                     const SizedBox(height: 22),
                     AuthPasswordField(
                       controller: _passwordController,
-                      hintText: 'Password',
+                      hintText: l10n.password,
                       textInputAction: TextInputAction.done,
+                      textDirection: TextDirection.ltr,
                     ),
                     const SizedBox(height: 17),
                     Align(
-                      alignment: Alignment.centerRight,
+                      alignment: AlignmentDirectional.centerEnd,
                       child: TextButton(
                         onPressed: () =>
                             context.push(RouteConstants.forgotPassword),
@@ -233,9 +241,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
-                          'Forget Password ?',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.forgotPasswordPrompt,
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
                             height: 1.2,
@@ -245,7 +253,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 34),
                     MoviesPrimaryButton(
-                      label: 'Login',
+                      label: l10n.login,
                       isLoading: _isSubmitting,
                       onPressed: _isSubmitting ? null : _onLoginPressed,
                     ),
@@ -259,15 +267,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: AppColors.onBackground,
                         ),
                         children: [
-                          const TextSpan(text: 'Don’t Have Account ? '),
+                          TextSpan(text: '${l10n.dontHaveAccount} '),
                           WidgetSpan(
                             alignment: PlaceholderAlignment.baseline,
                             baseline: TextBaseline.alphabetic,
                             child: GestureDetector(
                               onTap: () => context.go(RouteConstants.register),
-                              child: const Text(
-                                'Create One',
-                                style: TextStyle(
+                              child: Text(
+                                l10n.createOne,
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w900,
                                   height: 1.2,
@@ -281,10 +289,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 28),
-                    const _OrDivider(),
+                    _OrDivider(label: l10n.orDivider.toUpperCase()),
                     const SizedBox(height: 28),
                     AuthSocialButton(
-                      label: 'Login With Google',
+                      label: l10n.loginWithGoogle,
                       iconAssetPath: 'assets/images/auth/google_icon.png',
                       onPressed: _isSubmitting ? null : _onGoogleLoginPressed,
                     ),
@@ -302,18 +310,20 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _OrDivider extends StatelessWidget {
-  const _OrDivider();
+  const _OrDivider({this.label = 'OR'});
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(child: Divider(color: AppColors.primary, thickness: 1.12)),
+        const Expanded(child: Divider(color: AppColors.primary, thickness: 1.12)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            'OR',
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: AppColors.primary,
               fontSize: 15,
               fontWeight: FontWeight.w400,
@@ -321,7 +331,7 @@ class _OrDivider extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(child: Divider(color: AppColors.primary, thickness: 1.12)),
+        const Expanded(child: Divider(color: AppColors.primary, thickness: 1.12)),
       ],
     );
   }
